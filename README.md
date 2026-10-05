@@ -32,5 +32,5 @@
 
 ---
 
-## Made with ❤️ by [KungPowUnicorn]([https://substack.com/](https://ko-fi.com/E1E71WM9SA)).
+## Made with ❤️ by [KungPowUnicorn](https://ko-fi.com/E1E71WM9SA)
 
