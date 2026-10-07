@@ -1,0 +1,16 @@
+{
+  "name": "OutRun Delivery: Infinite Night",
+  "short_name": "OutRun",
+  "description": "An endless synthwave courier-driving and idle management game. Playable offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#171329",
+  "theme_color": "#171329",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
