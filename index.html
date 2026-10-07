@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OutRun Delivery: Infinite Night</title>
+<meta name="theme-color" content="#171329">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="description" content="An endless synthwave courier-driving and idle management game.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3Cfilter id='g' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='1.1'/%3E%3C/filter%3E%3ClinearGradient id='n' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23FF784F'/%3E%3Cstop offset='1' stop-color='%23E34FB9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='6' fill='%23171329'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='url%28%23n%29' stroke-width='4.2' filter='url%28%23g%29' opacity='.9'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='url%28%23n%29' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23fff3f8' stroke-width='.8' opacity='.85'/%3E%3Cpath d='M3 26h26' stroke='%2342DCE5' stroke-width='1.2' opacity='.8'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<canvas id="hw"></canvas>
+<div id="vignette"></div>
+<div id="scanlines"></div>
+
+<header id="topbar">
+  <div id="brand"><b>OUTRUN</b><span>DELIVERY // INFINITE NIGHT</span></div>
+  <div id="resbar">
+    <div class="res cr"><span class="ic" id="icCredit"></span><b id="rCred">0</b></div>
+    <div class="res"><span class="ic" id="icBolt"></span><b id="rInc">0</b><i>/S</i></div>
+    <div class="res"><b id="rDist">0</b><i>KM</i></div>
+    <div class="res"><span class="ic" id="icBox"></span><b id="rPkg">0</b></div>
+    <div class="res tl" id="rTime">1984</div>
+    <div class="res" id="rRepW"><span class="ic" id="icStar"></span><b id="rRep">0</b></div>
+    <div class="res hidden" id="rTapeW"><span class="ic" id="icTape"></span><b id="rTape">0</b></div>
+  </div>
+  <div id="topacts">
+    <button type="button" id="saveStatus" aria-live="polite" title="Save now">SAVED</button>
+    <button class="ibtn" id="btnPause" title="Pause or resume" aria-label="Pause game" aria-pressed="false"></button>
+    <button class="ibtn" id="btnAudio" title="Toggle sound"></button>
+    <button class="ibtn" id="btnSettings" title="Settings"></button>
+  </div>
+</header>
+
+<main id="content">
+  <section class="tab active" id="tab-drive">
+        <div id="eventBanner" class="hidden" role="status" aria-live="polite"><span id="evIcon" aria-hidden="true">!</span><b id="evName"></b><span id="evDesc"></span><div id="evBar"><i id="evFill"></i></div></div>
+    <div id="eventTransition" class="event-transition" aria-live="polite" aria-atomic="true"><span id="eventTransitionIcon" aria-hidden="true"></span><div><b id="eventTransitionTitle"></b><span id="eventTransitionText"></span></div></div>
+    <div id="hudLeft">
+      <div class="hud-speed"><b id="hSpeed">10.0</b><i>KM/S</i></div>
+      <div class="hud-sub" id="hVeh">MK-I COURIER</div>
+      <div id="regionBadge" aria-live="polite">NEON DUNES</div>
+      <button class="hud-sub acc" id="hHint" aria-label="Current objective"></button>
+      <button id="missionCard" class="mission-card" aria-label="Current mission"><b>SHIFT OBJECTIVE</b><span id="missionText">Loading objective…</span><i><span id="missionFill"></span></i></button>
+      <div id="hAuto" class="hud-sub hidden">AUTOPILOT: ON</div> <div id="hAutoOd" class="hud-sub hidden">AUTO OVERDRIVE: ON</div>
+    </div>
+    <div id="hudRight">
+      <div id="hBoosts"></div>
+      <div class="hud-sub" id="hMult">INCOME x1.0</div>
+    </div>
+    <div id="odWrap">
+      <div id="odLabel">OVERDRIVE</div>
+      <div id="odBar"><i id="odFill"></i></div>
+      <button id="odBtn" class="btn">ENGAGE — SPACE</button>
+    </div>
+    <button class="lcbtn" id="lcL">&#8249;</button>
+    <button class="lcbtn" id="lcR">&#8250;</button>
+  </section>
+  <section class="tab" id="tab-fleet"><div class="panel" id="p-fleet"></div></section>
+  <section class="tab" id="tab-routes"><div class="panel" id="p-routes"></div></section>
+  <section class="tab" id="tab-garage"><div class="panel" id="p-garage"></div></section>
+  <section class="tab" id="tab-timeline"><div class="panel" id="p-timeline"></div></section>
+</main>
+
+<nav id="tabbar">
+  <button class="ntab active" data-tab="drive" aria-label="Drive"><span class="ic" data-ic="gauge"></span><span>DRIVE</span></button>
+  <button class="ntab" data-tab="fleet" aria-label="Fleet"><span class="ic" data-ic="car"></span><span>FLEET</span></button>
+  <button class="ntab" data-tab="routes" aria-label="Routes"><span class="ic" data-ic="route"></span><span>ROUTES</span></button>
+  <button class="ntab" data-tab="garage" aria-label="Garage"><span class="ic" data-ic="wrench"></span><span>GARAGE</span></button>
+  <button class="ntab" data-tab="timeline" aria-label="Timeline"><span class="ic" data-ic="hourglass"></span><span>TIMELINE</span><i class="badge" id="tlBadge"></i></button>
+</nav>
+
+<div id="toasts"></div>
+<div id="modalRoot" class="hidden"></div>
+
+<script src="game.js" defer></script>
+</body>
+</html>
