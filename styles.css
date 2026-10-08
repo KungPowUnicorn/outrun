@@ -341,5 +341,41 @@ body.fx-lite #vignette.hitflash{box-shadow:none}
 .rm .event-transition,.rm #eventBanner:not(.hidden){animation:none!important;transition:none!important;transform:translate(-50%,-50%) scale(1)}
 .rm #regionBadge.region-enter{animation:none!important;transition:none!important;transform:none}
 
-.info{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:6px;border:1px solid var(--cyan);border-radius:50%;font:700 10px var(--font-n);color:var(--cyan);cursor:help;vertical-align:middle;flex:none}
-.info:hover,.info:focus-visible{background:rgba(66,220,229,.2);outline:none;box-shadow:0 0 8px rgba(66,220,229,.5)}
+.tip-i{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:6px;border:1px solid var(--cyan);border-radius:50%;font:700 10px var(--font-n);color:var(--cyan);cursor:help;vertical-align:middle;flex:none}
+.tip-i:hover,.tip-i:focus-visible{background:rgba(66,220,229,.2);outline:none;box-shadow:0 0 8px rgba(66,220,229,.5)}
+@media (max-width:760px){#hudRight{top:8px;bottom:auto;right:8px}}
+/* UI polish: checkbox size on wrapped rows, themed dropdowns, readable phone settings, no clipped top bar */
+.chkrow input{flex:none}
+select{background:#171329;color:#eeeaf9;border:1px solid var(--purple);padding:7px 8px;border-radius:0;max-width:100%}
+select:disabled{opacity:.45;cursor:not-allowed}
+@media (max-width:520px){
+  #brand{display:none}
+  #resbar{flex-wrap:wrap;overflow:visible;row-gap:4px;align-content:center;justify-content:flex-start}
+  .slrow{grid-template-columns:minmax(100px,34%) 1fr 42px}
+}
+
+/* ===== UI polish: toasts, modals, landscape, event clutter, fullscreen ===== */
+#toasts{width:min(440px,92vw);gap:6px}
+.toast{box-sizing:border-box;max-width:100%;padding:7px 18px;font-size:12.5px;line-height:1.25;text-align:center;overflow-wrap:anywhere;border-radius:18px;border-width:1px;box-shadow:0 0 14px rgba(0,0,0,.55)}
+.mbox{position:relative}.mbox:focus{outline:none}
+.mclose{position:sticky;top:-6px;float:right;z-index:3;width:34px;height:34px;min-height:0;margin:-6px -6px 0 8px;padding:0;border:1px solid var(--magenta);background:rgba(23,19,41,.95);color:var(--magenta);font:700 20px/1 var(--font-n);cursor:pointer}
+input[type=range]:focus{outline:none}
+input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:6px}
+.slrow>span,.slrow>label{display:flex;align-items:center;white-space:nowrap}
+.res.dist i,.res.inc i{display:inline}
+@media (max-width:520px){.slrow{grid-template-columns:128px 1fr 40px}.slrow>span,.slrow>label{letter-spacing:.5px;font-size:11px}}
+@media (max-width:760px){
+  #toasts{top:calc(var(--tbh) + var(--sat) + 6px)}.toast{font-size:11.5px;padding:6px 14px}
+  #regionBadge{white-space:normal;max-width:calc(100vw - 150px)}
+  body.event-live .mission-card,body.event-live #hHint{display:none}
+  body.event-live #eventBanner{top:100px}
+}
+@media (max-width:760px) and (orientation:portrait){#hHint{display:none}}
+@media (max-height:520px) and (orientation:landscape){
+  body.landscape #hudLeft{top:6px;bottom:auto;left:10px}
+  .hud-speed b{font-size:26px}
+  #hVeh,#hudRight,#odLabel{display:none}
+  body #odWrap{left:auto;right:76px;transform:none;bottom:6px;width:min(190px,30vw)}
+  #toasts{top:calc(var(--tbh) + var(--sat) + 4px);width:min(380px,50vw)}.toast{font-size:11px;padding:4px 12px}
+}
+@media (max-height:520px) and (orientation:landscape){#brand,#saveStatus{display:none}#resbar{flex-wrap:nowrap;justify-content:center}.res{padding:3px 8px}}
