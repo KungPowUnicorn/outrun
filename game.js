@@ -458,15 +458,12 @@ function startEvent(){
   if(id==='diner'){
     sim.scenery.push({type:'diner', abs:sim.travel+1300, side:1, off:14, seed:Math.random(), used:false});
     sim.ev={id, t:70, dur:70};
-    toast('NEON DINER AHEAD — drive through the lights!','event');
   } else if(id==='rival'){
     sim.ev={id, t:30, dur:30};
     sim.rival={z:420, lane:1, laneF:0, laneT:1.5, tgt:170, flee:false};
-    toast('RIVAL RACER! Survive 30s without a collision.','event');
   } else {
     sim.ev={id:'police', t:25, dur:25};
     sim.policeCar={z:610,laneF:0};
-    toast('POLICE PURSUIT! Do not touch anything for 25s.','event');
     sim.sirenT=0;
   }
   AudioSys.sfx('notify');
@@ -768,7 +765,7 @@ const R = {
     this.cx.setTransform(this.DPR,0,0,this.DPR,0,0);
     this.f=clamp(Math.min(this.W*0.98,this.H*1.5)*4,1800,9000);
     this.horizonY=this.H*0.40;
-    this.camH=(this.H*0.86-this.horizonY)*60/this.f;
+    this.camH=(this.H*0.78-this.horizonY)*60/this.f;
     this.buildSun(); this.buildStars(); this.buildCity();
   },
   buildSun(){
@@ -1340,6 +1337,8 @@ const I = {
   play:'<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',
   speaker:'<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
   speakerOff:'<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
+  full:'<svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+  fullExit:'<svg viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>',
   settings:'<svg viewBox="0 0 24 24"><path d="M18.97 9.84 L22.21 10.04 L22.21 13.96 L18.97 14.16 L18.46 15.41 L20.61 17.83 L17.83 20.61 L15.41 18.46 L14.16 18.97 L13.96 22.21 L10.04 22.21 L9.84 18.97 L8.59 18.46 L6.17 20.61 L3.39 17.83 L5.54 15.41 L5.03 14.16 L1.79 13.96 L1.79 10.04 L5.03 9.84 L5.54 8.59 L3.39 6.17 L6.17 3.39 L8.59 5.54 L9.84 5.03 L10.04 1.79 L13.96 1.79 L14.16 5.03 L15.41 5.54 L17.83 3.39 L20.61 6.17 L18.46 8.59Z"/><circle cx="12" cy="12" r="3.3"/></svg>',
   v_coupe:'<svg viewBox="0 0 64 28"><path d="M4 21l3-6 11-3 7-5h13l8 5 12 3 2 6h-5a5 5 0 0 0-10 0H23a5 5 0 0 0-10 0z"/><circle cx="18" cy="21" r="3.4"/><circle cx="46" cy="21" r="3.4"/><path d="M23 12l5-4h9l6 4z"/></svg>',
   v_int:'<svg viewBox="0 0 64 28"><path d="M2 21l11-8 18-3 20 5 9 2 1 4h-7a5 5 0 0 0-10 0H25a5 5 0 0 0-10 0z"/><circle cx="19" cy="21" r="3.4"/><circle cx="47" cy="21" r="3.4"/><path d="M38 9l7-2 3 2M14 13l6-3"/></svg>',
@@ -1351,10 +1350,14 @@ function icon(n){ return '<span class="ic">'+(I[n]||'')+'</span>'; }
 function vehIcon(n){ return '<span class="vehicon ic">'+(I[n]||'')+'</span>'; }
 
 /* ---------------- TOASTS & MODALS ---------------- */
-function toast(msg, type='info', ms=3800){
+function toast(msg, type='info', ms=3000){
+  const box=el('toasts');
+  if([...box.children].some(t=>t.textContent===msg&&!t.classList.contains('out'))) return;
+  const cap=(innerWidth<760||innerHeight<520)?2:3;
+  while(box.children.length>=cap) box.firstElementChild.remove();
   const d=document.createElement('div');
   d.className='toast '+type; d.textContent=msg;
-  el('toasts').appendChild(d);
+  box.appendChild(d);
   setTimeout(()=>{ d.classList.add('out'); setTimeout(()=>d.remove(),350); }, ms);
 }
 let MODALCBS=[];
@@ -1363,12 +1366,12 @@ function modalBtns(arr){
   return '<div class="mbtns">'+arr.map((b,i)=>'<button class="btn '+(b.cls||'')+'" data-mb="'+i+'">'+b.label+'</button>').join('')+'</div>';
 }
 function showModal(html){
-  const r=el('modalRoot');r.innerHTML='<div class="mback"></div><div class="mbox" role="dialog" aria-modal="true">'+html+'</div>';r.classList.remove('hidden');
-  const first=r.querySelector('button,input,textarea,select,[tabindex]');if(first)requestAnimationFrame(()=>first.focus());
+  const r=el('modalRoot');r.innerHTML='<div class="mback"></div><div class="mbox" role="dialog" aria-modal="true"><button type="button" class="mclose" aria-label="Close">×</button>'+html+'</div>';r.classList.remove('hidden');
+  const box=r.querySelector('.mbox');box.tabIndex=-1;requestAnimationFrame(()=>box.focus({preventScroll:true}));
 }
 function closeModal(){ el('modalRoot').classList.add('hidden'); el('modalRoot').innerHTML=''; MODALCBS=[]; if(typeof state!=='undefined')saveGame(); }
 el('modalRoot').addEventListener('click', e=>{
-  if(e.target.classList.contains('mback')){ closeModal(); return; }
+  if(e.target.classList.contains('mback')||e.target.closest('.mclose')){ closeModal(); return; }
   const b=e.target.closest('[data-mb]');
   if(b){ const fn=MODALCBS[+b.dataset.mb]; AudioSys.sfx('click'); if(fn) fn(); else closeModal(); }
 });
@@ -1698,6 +1701,7 @@ function frameHUD(){
   AudioSys.updateEngine();
 }
 function uiTick(){
+  document.body.classList.toggle('event-live',!!sim.ev);
   el('rCred').textContent=fmt(state.credits);
   updateMissionUI(); updatePauseUI();
   el('rInc').textContent=fmt(cachedIncome);
@@ -1708,7 +1712,7 @@ function uiTick(){
   el('rTapeW').classList.toggle('hidden', state.tapes<=0 && state.prestigeCount===0);
   el('rTape').textContent=String(state.tapes);
   el('hVeh').textContent='COURIER MK-'+Math.min(99,1+GARAGE.reduce((a,u)=>a+state.upgrades[u.id],0));
-  { const df=dayFactor(); el('regionBadge').textContent=visualTimeline().regionName+(df===null?'':df>.5?' · ☀ SYNTHWAVE DAY':' · ☾ VAPORWAVE NIGHT'); }
+  { const df=dayFactor(); el('regionBadge').textContent=visualTimeline().regionName+(df===null?'':innerWidth>520?(df>.5?' · ☀ SYNTHWAVE DAY':' · ☾ VAPORWAVE NIGHT'):(df>.5?' · ☀ DAY':' · ☾ NIGHT')); }
   el('hMult').textContent='INCOME x'+(boostMult()*(sim.od.active?odMult():1)).toFixed(1);
   const ha=el('hAuto');
   if(state.auto.apilot){ ha.classList.remove('hidden'); ha.classList.toggle('off',!sim.autoOn); ha.textContent='AUTOPILOT: '+(sim.autoOn?'ON':'OFF'); }
@@ -1743,7 +1747,7 @@ el('lcR').addEventListener('click',()=>setLane(sim.target+1));
 
 /* ---------------- SETTINGS MODAL ---------------- */
 const SETTING_TIPS={"master": "Overall loudness for everything. Music, effects and engine all scale with it.", "music": "Volume of the background music only.", "sfx": "Volume of pickups, crashes, Overdrive and menu sounds.", "engine": "Volume of the engine hum, which rises with your speed.", "preset": "Quick mixes that set music, effects and engine volume in one go.", "scale": "Makes all interface text bigger or smaller.", "mute": "Silences all sound. Your volume levels are kept.", "reduced": "Turns off screen shake, speed streaks and most animations. Helps with motion sickness.", "contrast": "Boosts text and panel contrast on the HUD so it is easier to read.", "flashes": "Tones down pulsing glows and full-screen event overlays, for light sensitivity.", "streaks": "The speed lines that fly past at high speed and in Overdrive. Ignored when Reduced motion is on.", "scan": "A faint retro CRT line pattern over the whole screen.", "glow": "Neon glow around lights and the HUD. Turn off for a flatter look and slightly better performance.", "guides": "The dotted lines from your car to nearby pickups. Pickups are still pulled in when this is off.", "pausemenus": "Freezes driving while a tab other than Drive is open, so traffic cannot hit you while you shop.", "pausebg": "Freezes the game while this browser tab is hidden, and disables away earnings for that time.", "controls": "How touch screens steer: swipe, on-screen arrow buttons, or tapping the left or right side. Mouse and keyboard always work.", "palette": "Changes the color scheme of the road, sky and HUD.", "track": "Which music plays. Auto follows day and night. Shuffle picks a random track on a timer.", "trackmin": "How often Shuffle switches to a new random track. Only used when Music Track is set to Shuffle.", "daynight": "The sky slowly cycles between synthwave day and vaporwave night, about every 8 minutes."};
-function si(k){ return '<span class="info" tabindex="0" role="img" aria-label="'+SETTING_TIPS[k]+'" data-tip="'+SETTING_TIPS[k]+'">?</span>'; }
+function si(k){ return '<span class="tip-i" tabindex="0" role="img" aria-label="'+SETTING_TIPS[k]+'" data-tip="'+SETTING_TIPS[k]+'">?</span>'; }
 function openSettings(){
   const s=state.settings;
   showModal('<h2>SETTINGS</h2>'
@@ -1766,7 +1770,7 @@ function openSettings(){
     +'<label class="chkrow"><input type="checkbox" id="sPauseBg" '+(s.pauseBackground?'checked':'')+'> Pause progress while this tab is hidden (disable offline earnings)'+si('pausebg')+'</label>'
     +'<div class="slrow"><label for="sControls">TOUCH CONTROL'+si('controls')+'</label><select id="sControls"><option value="swipe" '+(s.controls==='swipe'?'selected':'')+'>Swipe / arrows</option><option value="buttons" '+(s.controls==='buttons'?'selected':'')+'>On-screen arrows</option><option value="tap" '+(s.controls==='tap'?'selected':'')+'>Tap screen sides</option></select><b></b></div>'
     +'<div class="slrow"><label for="sPalette">COLOR THEME'+si('palette')+'</label><select id="sPalette"><option value="sunset" '+(s.palette==='sunset'?'selected':'')+'>Sunset</option><option value="ocean" '+(s.palette==='ocean'?'selected':'')+'>Ocean</option><option value="arcade" '+(s.palette==='arcade'?'selected':'')+'>Arcade</option><option value="mono" '+(s.palette==='mono'?'selected':'')+'>Monochrome</option></select><b></b></div>'
-    +'<div class="slrow"><label for="sTrack">MUSIC TRACK'+si('track')+'</label><select id="sTrack"><option value="auto" '+(s.track==='auto'?'selected':'')+'>Auto (follows day / night)</option><option value="shuffle" '+(s.track==='shuffle'?'selected':'')+'>Shuffle (random on a timer)</option>'+Object.keys(TRACKS).map(k=>'<option value="'+k+'" '+(s.track===k?'selected':'')+'>'+TRACKS[k].name+'</option>').join('')+'</select></div>'
+    +'<div class="slrow"><label for="sTrack">MUSIC TRACK'+si('track')+'</label><select id="sTrack"><option value="auto" '+(s.track==='auto'?'selected':'')+'>Auto (day / night)</option><option value="shuffle" '+(s.track==='shuffle'?'selected':'')+'>Shuffle (timer)</option>'+Object.keys(TRACKS).map(k=>'<option value="'+k+'" '+(s.track===k?'selected':'')+'>'+TRACKS[k].name+'</option>').join('')+'</select></div>'
     +'<div class="slrow"><label for="sTrackMin">SHUFFLE EVERY'+si('trackmin')+'</label><select id="sTrackMin" '+(s.track==='shuffle'?'':'disabled')+'>'+[1,2,3,5,10,15,30].map(m=>'<option value="'+m+'" '+(s.trackMinutes===m?'selected':'')+'>'+m+' min</option>').join('')+'</select><b></b></div>'
     +'<label class="chkrow"><input type="checkbox" id="sDayNight" '+(s.dayNight?'checked':'')+'> Day / night cycle (synthwave day, vaporwave night)'+si('daynight')+'</label>'
     +'<p style="font-size:12px;opacity:.55">Progress saves automatically every 10s and when you leave. Offline earnings: '+Math.round(offEff()*100)+'% rate, capped at '+(offCapS()/3600)+'h.</p>'
@@ -1798,7 +1802,7 @@ function openSettings(){
 function openAbout(){
   showModal('<div class="about"><h2>ABOUT OUTRUN DELIVERY</h2>'+`
 <p>You run an autonomous courier company on an endless neon highway. Earn credits by driving and delivering, upgrade your car, build a fleet that earns while you are away, then reset with <b>Dawnbreak</b> for permanent bonuses.</p>
-<h3>CONTROLS</h3><ul><li><b>A / D</b> or <b>arrow keys</b>: change lane. On touch: tap either side of the screen, swipe, or use the on-screen arrows. With a mouse: click a lane (or anywhere on the road) to move there, drag sideways, scroll the wheel, or right-click for Overdrive.</li><li><b>SPACE</b> or the Overdrive button: engage Overdrive when the meter is full.</li><li><b>1-5</b>: switch tabs. <b>Esc</b>: close a window. <b>P</b>: pause.</li><li>The sky cycles between <b>synthwave day</b> and <b>vaporwave night</b> about every 8 minutes. Pick a music track, set the music to shuffle on a timer, or turn the cycle off in Settings.</li></ul>
+<h3>CONTROLS</h3><ul><li><b>A / D</b> or <b>arrow keys</b>: change lane. On touch: tap either side of the screen, swipe, or use the on-screen arrows. With a mouse: click a lane (or anywhere on the road) to move there, drag sideways, scroll the wheel, or right-click for Overdrive.</li><li><b>SPACE</b> or the Overdrive button: engage Overdrive when the meter is full.</li><li><b>1-5</b>: switch tabs. <b>Esc</b>: close a window. <b>P</b>: pause. <b>F</b>: fullscreen.</li><li>The sky cycles between <b>synthwave day</b> and <b>vaporwave night</b> about every 8 minutes. Pick a music track, set the music to shuffle on a timer, or turn the cycle off in Settings.</li></ul>
 <h3>TOP BAR</h3><ul><li><b>Credits</b>: your money. <b>/S</b>: income per second, including every multiplier. <b>KM</b>: distance this run.</li><li><b>Box</b>: packages collected. <b>Era</b>: current timeline. <b>Star</b>: reputation, +0.5% income per point. <b>Tape</b>: Cassette Tapes, appears after your first Dawnbreak.</li></ul>
 <h3>DRIVE HUD</h3><ul><li><b>Big number</b>: current speed in km/s. It drops after a collision and rises in Overdrive.</li><li><b>COURIER MK-n</b>: total Garage levels, a quick power rating.</li><li><b>NEXT: ...</b>: the best thing you can afford right now.</li><li><b>AUTOPILOT / AUTO OVERDRIVE</b>: appear once bought. Click to toggle.</li><li><b>Right side</b>: active boosts with timers, and your total income multiplier.</li><li><b>Pink meter</b>: Overdrive charge. It fills over time, from deliveries, Energy Cells and close calls.</li></ul>
 <h3>ON THE ROAD</h3><ul><li>Blue boxes are <b>standard</b> packages, orange are <b>rush</b> (big payout), light-cyan bolts are <b>Energy Cells</b> (charge Overdrive), magenta diamonds are <b>Data Fragments</b> (+1% income each, permanent).</li><li>Cars are obstacles. A collision slows you for 3s but never costs credits.</li><li>Change lanes just before a car passes for a <b>close call</b>: bonus credits and Overdrive charge.</li><li>A <b>delivery</b> pays out automatically every 10s.</li></ul>
@@ -1840,6 +1844,22 @@ function importSave(){
     }}]));
 }
 el('btnSettings').addEventListener('click',()=>{ AudioSys.unlock(); openSettings(); });
+const FS={get on(){return !!(document.fullscreenElement||document.webkitFullscreenElement);},get ok(){return !!(document.fullscreenEnabled||document.webkitFullscreenEnabled);}};
+function toggleFullscreen(){
+  const d=document, r=d.documentElement;
+  if(!FS.ok){ toast(/iPhone|iPad|iPod/.test(navigator.userAgent)?'iPhone: tap Share, then Add to Home Screen, and open the game from there for fullscreen.':'Fullscreen is not available in this browser.','info',5000); return; }
+  if(FS.on){ (d.exitFullscreen||d.webkitExitFullscreen).call(d); return; }
+  const f=r.requestFullscreen||r.webkitRequestFullscreen, p=f.call(r,{navigationUI:'hide'});
+  if(p&&p.catch) p.catch(()=>toast('The browser blocked fullscreen.','warn',3000));
+}
+function syncFullBtn(){
+  const b=el('btnFull'); if(!b) return;
+  const standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
+  b.classList.toggle('hidden',!!standalone);
+  const t=FS.on?'Exit fullscreen':'Fullscreen'; b.innerHTML=I[FS.on?'fullExit':'full']; b.title=t; b.setAttribute('aria-label',t); b.setAttribute('aria-pressed',String(FS.on));
+}
+el('btnFull').addEventListener('click',()=>{ AudioSys.unlock(); toggleFullscreen(); });
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{ syncFullBtn(); if(typeof R!=='undefined'&&R.resize) R.resize(); }));
 function syncAudioBtn(){ el('btnAudio').innerHTML=icon(state.settings.muted?'speakerOff':'speaker'); }
 el('btnAudio').addEventListener('click',()=>{
   AudioSys.unlock();
@@ -1862,6 +1882,7 @@ addEventListener('keydown', e=>{
   else if(k==='arrowright'||k==='d'){ setLane(sim.target+1); if(curTab==='drive') e.preventDefault(); }
   else if(k===' '){const b=e.target.closest&&e.target.closest('button,a,select');if(b&&curTab!=='drive')return;if(!gameStopped())activateOD();e.preventDefault();}
   else if(k==='p'){togglePause();e.preventDefault();}
+  else if(k==='f'){toggleFullscreen();e.preventDefault();}
   else if(k==='escape') closeModal();
   else if(['1','2','3','4','5'].includes(k)) switchTab(['drive','fleet','routes','garage','timeline'][+k-1]);
 });
@@ -1981,14 +2002,14 @@ function init(){
   T('odBar','OVERDRIVE METER: at 100% you can engage x5 income and extra speed.');
   T('hAuto','AUTOPILOT: dodges traffic and grabs packages. Click to toggle.',1);
   T('hAutoOd','AUTO OVERDRIVE: fires Overdrive as soon as the meter is full. Click to toggle.',1);
-  T('btnAudio','SOUND: mute or unmute.',1); T('btnSettings','SETTINGS: audio, statistics, about, save backup.',1);
+  T('btnFull','FULLSCREEN: hides the browser bars. Shortcut: F.',1); T('btnAudio','SOUND: mute or unmute.',1); T('btnSettings','SETTINGS: audio, statistics, about, save backup.',1);
   let tt;
   function showTip(t){ tipEl.textContent=t.dataset.tip; tipEl.style.display='block'; const r=t.getBoundingClientRect(),w=tipEl.offsetWidth,h=tipEl.offsetHeight; let x=Math.max(6,Math.min(innerWidth-w-6,r.left+r.width/2-w/2)),y=r.bottom+8; if(y+h>innerHeight-6) y=r.top-h-8; tipEl.style.left=x+'px'; tipEl.style.top=Math.max(6,y)+'px'; }
   const hide=()=>{ tipEl.style.display='none'; };
   document.addEventListener('pointerover',e=>{ if(e.pointerType!=='mouse') return; const t=e.target.closest&&e.target.closest('[data-tip]'); t?showTip(t):hide(); });
-  document.addEventListener('click',e=>{ if(e.target.closest&&e.target.closest('.info')) e.preventDefault(); },true);
-  document.addEventListener('focusin',e=>{ const t=e.target.closest&&e.target.closest('.info'); if(t) showTip(t); });
-  document.addEventListener('focusout',e=>{ if(e.target.classList&&e.target.classList.contains('info')) hide(); });
+  document.addEventListener('click',e=>{ if(e.target.closest&&e.target.closest('.tip-i')) e.preventDefault(); },true);
+  document.addEventListener('focusin',e=>{ const t=e.target.closest&&e.target.closest('.tip-i'); if(t&&t.matches(':focus-visible')) showTip(t); });
+  document.addEventListener('focusout',e=>{ if(e.target.classList&&e.target.classList.contains('tip-i')) hide(); });
   document.addEventListener('click',e=>{ if(e.pointerType==='mouse') return; const t=e.target.closest('[data-tip]'); if(!t||t.classList.contains('notap')){ hide(); return; } showTip(t); clearTimeout(tt); tt=setTimeout(hide,3500); });
 })();
 init();
@@ -2005,3 +2026,4 @@ init();
     }).catch(()=>{});
   });
 })();
+syncFullBtn();
