@@ -379,3 +379,20 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:6px
   #toasts{top:calc(var(--tbh) + var(--sat) + 4px);width:min(380px,50vw)}.toast{font-size:11px;padding:4px 12px}
 }
 @media (max-height:520px) and (orientation:landscape){#brand,#saveStatus{display:none}#resbar{flex-wrap:nowrap;justify-content:center}.res{padding:3px 8px}}
+
+/* ===== settings groups, offline badge ===== */
+.sgroup{border:1px solid rgba(117,84,217,.4);margin:0 0 10px;background:rgba(23,19,41,.5)}
+.sgroup>summary{list-style:none;cursor:pointer;padding:11px 12px;font:700 11px var(--font-n);letter-spacing:2px;color:var(--magenta);display:flex;align-items:center;justify-content:space-between;min-height:44px}
+.sgroup>summary::-webkit-details-marker{display:none}
+.sgroup>summary::after{content:'▸';color:var(--cyan);font-size:14px;transition:transform .15s}
+.sgroup[open]>summary::after{transform:rotate(90deg)}
+.sgroup[open]>summary{border-bottom:1px solid rgba(117,84,217,.3)}
+.sgroup>summary:focus-visible{outline:2px solid var(--cyan);outline-offset:-2px}
+.sgroup>.sbody{padding:10px 12px 4px}
+.sbtns{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}.sbtns .btn{flex:1;min-width:120px}
+.snote{font-size:12px;opacity:.6;margin:4px 0 8px}
+.net-badge{display:inline-flex;align-items:center;gap:6px;font:700 9px var(--font-n);letter-spacing:1.5px;color:var(--cyan);opacity:.7;cursor:help;white-space:nowrap}
+.net-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
+.net-badge.off{color:#ffb347;opacity:.95}
+@media (max-width:760px){.net-badge .nb-t{display:none}.net-badge{padding:6px}}
+.slrow>b:empty{display:none}.slrow select{grid-column:2/-1;min-width:0}
