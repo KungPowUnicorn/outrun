@@ -29,6 +29,7 @@ const FLEET = [
   {id:'cruiser',     name:'Solar Cruiser',     icon:'v_cru',   cost:10000,  income:25,  tag:'EFFICIENCY'},
   {id:'hover',       name:'Hover Courier',     icon:'v_hov',   cost:50000,  income:100, tag:'URBAN'},
   {id:'hauler',      name:'Heavy Hauler',      icon:'v_hau',   cost:250000, income:450, tag:'BULK'},
+  {id:'phantom',     name:'Maglev Phantom',    icon:'v_pha',   cost:1500000,income:2800,tag:'STEALTH'},
 ];
 const AUTO = [
   {id:'apilot',  name:'Basic Autopilot',    icon:'wheel',  base:2000,  growth:1,    max:1,  desc:'Automatically dodges traffic and chases packages. Toggle on the Drive screen.'},
@@ -38,13 +39,26 @@ const AUTO = [
   {id:'drones',  name:'Courier Drones',     icon:'drone',  base:5000,  growth:2.1,  max:30, desc:'+3 CR/s of drone income per level.'},
   {id:'qlogi',   name:'Quantum Logistics',  icon:'atom',   base:20000, growth:2.2,  max:25, desc:'+25% ALL income per level.'},
 ];
+// Each route needs lifetime distance (req) AND a one-time payment (cost). Purchases reset on Dawnbreak. Add more by appending here.
 const ROUTES = [
-  {id:'coastal', name:'Coastal Circuit',  mult:1.0,  req:0,      desc:'Sun-bleached shoreline runs. Where it all began.'},
-  {id:'desert',  name:'Desert Express',   mult:1.35, req:5000,   desc:'Long flat straights across the neon dunes.'},
-  {id:'loop',    name:'Neon Loop',        mult:1.8,  req:25000,  desc:'The city ring road, glowing end to end.'},
-  {id:'midnight',name:'Midnight Freeway', mult:2.4,  req:60000,  desc:'Six lanes of chrome and static.'},
-  {id:'ridge',   name:'Static Ridge',     mult:3.2,  req:120000, desc:'A mountain pass above the cloud deck.'},
-  {id:'horizon', name:'Event Horizon',    mult:4.5,  req:300000, desc:'The road stops pretending to be real.'},
+  {id:'coastal', name:'Coastal Circuit', mult:1.0, req:0, cost:0, desc:'Sun-bleached shoreline runs. Where it all began.'},
+  {id:'desert', name:'Desert Express', mult:1.35, req:5000, cost:6000, desc:'Long flat straights across the neon dunes.'},
+  {id:'loop', name:'Neon Loop', mult:1.8, req:25000, cost:45000, desc:'The city ring road, glowing end to end.'},
+  {id:'midnight', name:'Midnight Freeway', mult:2.4, req:60000, cost:300000, desc:'Six lanes of chrome and static.'},
+  {id:'ridge', name:'Static Ridge', mult:3.2, req:120000, cost:2000000, desc:'A mountain pass above the cloud deck.'},
+  {id:'horizon', name:'Event Horizon', mult:4.5, req:300000, cost:15000000, desc:'The road stops pretending to be real.'},
+  {id:'meridian', name:'Palm Meridian', mult:6, req:500000, cost:100000000, desc:'A tree-lined line straight through the sunset.'},
+  {id:'chromecanyon', name:'Chrome Canyon', mult:8, req:800000, cost:750000000, desc:'Mirror-polished walls and echoing engines.'},
+  {id:'laserharbor', name:'Laser Harbor', mult:11, req:1200000, cost:5500000000, desc:'Container cranes lit like a stage show.'},
+  {id:'spiral', name:'Skyline Spiral', mult:15, req:2000000, cost:40000000000, desc:'A ramp that only goes up.'},
+  {id:'sunken', name:'Sunken Boulevard', mult:20, req:3200000, cost:300000000000, desc:'The old downtown, flooded and glowing.'},
+  {id:'archipelago', name:'Arcade Archipelago', mult:27, req:5000000, cost:2200000000000, desc:'Causeways between islands of blinking cabinets.'},
+  {id:'glitch', name:'Glitch Turnpike', mult:36, req:8000000, cost:16000000000000, desc:'Toll booths that charge you yesterday.'},
+  {id:'ghost', name:'Ghost Interstate', mult:48, req:12000000, cost:120000000000000, desc:'Lanes full of cars that are not there.'},
+  {id:'aurora', name:'Aurora Transit', mult:65, req:20000000, cost:900000000000000, desc:'Polar lights over an empty six-lane.'},
+  {id:'quantum', name:'Quantum Causeway', mult:88, req:32000000, cost:7000000000000000, desc:'Every exit leads somewhere you already are.'},
+  {id:'hiss', name:'Tape Hiss Tunnel', mult:120, req:50000000, cost:55000000000000000, desc:'A tunnel built from rewound static.'},
+  {id:'lastsun', name:'Last Sunset Route', mult:165, req:80000000, cost:400000000000000000, desc:'The road that ends exactly at dusk.'}
 ];
 const TIMELINES = {
   t1984:{id:'t1984', name:'1984 · NEON DESERT', short:'1984', unlock:0, mult:1, env:'desert',
@@ -57,8 +71,18 @@ const TIMELINES = {
     ground:'#0d0a1e', grid:'rgba(227,79,185,', edge:'#42dce5', edge2:'#e34fb9', dash:'#bffcff',
     roadA:'#141741', roadB:'#111336', ridge:'#120e28',
     desc:'Downtown grid at night. The future arrived early.'},
+  // ADD A NEW TIMELINE: copy the block below, give it a new id/unlock/mult/env, then add a SCENE_STAGES entry with the same id
+  // and remove its name from FUTURE_TL. Unlock modal, Timeline tab, saves, missions and stats pick it up automatically.
+  // Optional gameplay fields: grip (lane-change speed multiplier), pkg (package payout multiplier), mod (text shown in the UI), words (billboard text).
+  t1997:{id:'t1997', name:'1997 · CYBERPUNK STREETS', short:'1997', unlock:1000000, mult:2.5, env:'cyber', grip:0.9, pkg:1.25,
+    mod:'slick streets: lane changes 10% slower, packages pay 25% more',
+    words:['NEURO','CYBER','DATA','HOLO','RAMEN','CHROME','SYNTH','NO-FLY','ZAIBATSU','DECK','GLITCH','VIRUS','MEGACORP','NEON','24H','BIOS','PACHINKO','CREDITS'],
+    sky:['#05060f','#0f1a3a','#7a1670'], glow:'rgba(255,43,214,', sun:['#fff0fb','#ff2bd6','#6a1bff'],
+    ground:'#05070d', grid:'rgba(57,255,156,', edge:'#ff2bd6', edge2:'#39ff9c', dash:'#e8fff4',
+    roadA:'#0d1226', roadB:'#0a0f1f', ridge:'#0b0f24',
+    desc:'Rain, steel and static. Everyone is a courier now.'},
 };
-const FUTURE_TL = ['1997 · CYBERPUNK STREETS','2025 · CORPORATE MEGACITY','2088 · QUANTUM HIGHWAY','??? · REALITY DISTORTION'];
+const FUTURE_TL = ['2025 · CORPORATE MEGACITY','2088 · QUANTUM HIGHWAY','??? · REALITY DISTORTION'];   // teasers for timelines not built yet
 const PRESTIGE = [
   {id:'analog',   name:'Analog Memories',     icon:'tape',      max:10, costs:[1,2,4,7,11,16,22,29,37,46], desc:l=>'Start each run with '+fmt(startCreditsFor(l))+' CR'},
   {id:'odinf',    name:'Infinite Overdrive',  icon:'bolt',      max:5,  costs:[2,4,7,11,16],               desc:l=>'Overdrive '+(15+3*l)+'s, base x'+(5+0.5*l).toFixed(1)},
@@ -80,8 +104,15 @@ const SCENE_STAGES={
     {id:'rain',name:'RAIN CIRCUIT',env:'city',weather:'rain',sky:['#080c20','#182d56','#155868'],ground:'#071521',edge:'#58cfff',edge2:'#e34fb9',ridge:'#10182f'},
     {id:'harbor',name:'AFTERHOURS HARBOR',env:'coast',weather:'mist',sky:['#101627','#24435a','#668b91'],ground:'#101c29',edge:'#42dce5',edge2:'#ff784f',ridge:'#172838'},
     {id:'skybridge',name:'SKYBRIDGE LOOP',env:'city',weather:'clear',sky:['#170c2d','#4b1d67','#b14882'],ground:'#151027',edge:'#ff5cc8',edge2:'#f9d68a',ridge:'#211438'}
+  ],
+  t1997:[
+    {id:'alley',name:'NEON RAIN ALLEY',env:'cyber',weather:'rain',sky:['#05060f','#10193a','#7a1670'],ground:'#05070d',edge:'#ff2bd6',edge2:'#39ff9c',ridge:'#0b0f24'},
+    {id:'plaza',name:'CHROME PLAZA',env:'cyber',weather:'clear',sky:['#060812','#1a1040','#0f6a7a'],ground:'#070913',edge:'#39ff9c',edge2:'#ff2bd6',ridge:'#0e1230'},
+    {id:'stack',name:'DATASTACK OVERPASS',env:'cyber',weather:'mist',sky:['#0a0614','#2a0f4a','#a3225e'],ground:'#0a0712',edge:'#ffe14d',edge2:'#27e8ff',ridge:'#16102c'},
+    {id:'canal',name:'ACID CANAL',env:'coast',weather:'rain',sky:['#04100f','#0a3a3a','#2aa38c'],ground:'#04100f',edge:'#39ff9c',edge2:'#ff2bd6',ridge:'#0b2a2a'}
   ]
 };
+const isCityEnv=e=>e==='city'||e==='cyber';
 const COLOR_THEMES={
   ocean:{sky:['#061923','#0c4355','#167579'],ground:'#071a22',edge:'#42dec5',edge2:'#91f5ed',dash:'#d7fff4',grid:'rgba(66,220,197,',roadA:'#102830',roadB:'#0d232c',ridge:'#0b2933',sun:['#d9fff5','#56d9c4','#257da0'],glow:'rgba(66,220,197,'},
   arcade:{sky:['#16051f','#52206d','#ba3864'],ground:'#170d25',edge:'#ff4fd8',edge2:'#fff05e',dash:'#fff4a1',grid:'rgba(255,79,216,',roadA:'#291442',roadB:'#211236',ridge:'#251235',sun:['#fff68a','#ff9d40','#ff4fd8'],glow:'rgba(255,79,216,'},
@@ -136,9 +167,9 @@ function defaultState(){
     timeline:'t1984', unlocked:['t1984'],
     prestigeCount:0, tapes:0, tapesEarned:0, msIdx:0,
     upgrades:{turbo:0,tires:0,gps:0,cassette:0,solar:0,gearbox:0,chrome:0,nos:0},
-    fleet:{coupe:0,interceptor:0,cruiser:0,hover:0,hauler:0},
-    fleetLv:{coupe:0,interceptor:0,cruiser:0,hover:0,hauler:0},
-    route:'coastal', offUp:{rate:0,cap:0},
+    fleet:{coupe:0,interceptor:0,cruiser:0,hover:0,hauler:0,phantom:0},
+    fleetLv:{coupe:0,interceptor:0,cruiser:0,hover:0,hauler:0,phantom:0},
+    route:'coastal', routesOwned:{coastal:true}, offUp:{rate:0,cap:0},
     auto:{apilot:0,aod:0,synth:0,sorting:0,drones:0,qlogi:0},
     prestige:{analog:0,odinf:0,workforce:0,nav:0,temporal:0},
     settings:{master:0.8, music:0.55, sfx:0.8, engine:0.65, muted:false,
@@ -172,11 +203,16 @@ function sanitize(d){
   for(const key of ['upgrades','fleet','fleetLv','auto','prestige']) for(const k in s[key]) s[key][k]=Math.floor(s[key][k]);
   for(const k in s.fleetLv) s.fleetLv[k]=Math.min(100,s.fleetLv[k]);
   for(const k in s.fleet) s.fleet[k]=Math.min(1e6,s.fleet[k]);
+  if(typeof d.route==='string'&&ROUTES.some(r=>r.id===d.route)) s.route=d.route;   // (the selected route was never being restored before)
+  { const ro={coastal:true};
+    if(d.routesOwned&&typeof d.routesOwned==='object'){ for(const r of ROUTES) if(d.routesOwned[r.id]===true) ro[r.id]=true; }
+    else for(const r of ROUTES) if(s.lifetimeDistance>=r.req) ro[r.id]=true;           // older saves: grandfather routes already unlocked
+    s.routesOwned=ro; if(!ro[s.route]) s.route='coastal'; }
   s.tod=s.tod%1;
   if(d.offUp&&typeof d.offUp==='object'){ s.offUp.rate=clamp(Math.floor(+d.offUp.rate)||0,0,19); s.offUp.cap=clamp(Math.floor(+d.offUp.cap)||0,0,46); }
   if(d.settings){
     for(const k of ['pauseMenus','pauseBackground','highContrast','reduceFlashes','speedStreaks','scanlines','glowEffects','dayNight','pickupGuides']) if(typeof d.settings[k]==='boolean') s.settings[k]=d.settings[k];
-    if(typeof d.settings.uiScale==='number') s.settings.uiScale=clamp(d.settings.uiScale,0.85,1.25);
+    if(typeof d.settings.uiScale==='number'&&isFinite(d.settings.uiScale)) s.settings.uiScale=clamp(d.settings.uiScale,0.85,1.25);
     if(['swipe','buttons','tap'].includes(d.settings.controls)) s.settings.controls=d.settings.controls;
     if(['sunset','ocean','arcade','mono'].includes(d.settings.palette)) s.settings.palette=d.settings.palette;
     if(d.settings.track==='auto'||d.settings.track==='shuffle'||(typeof d.settings.track==='string'&&TRACKS[d.settings.track])) s.settings.track=d.settings.track;
@@ -242,7 +278,7 @@ function prestigeCost(p){ const l=state.prestige[p.id]; return l>=p.max?Infinity
 function offEff(){ return 0.05*(1+state.offUp.rate); }
 function offCapS(){ return 3600+1800*state.offUp.cap; }
 function offCost(k){ return Math.ceil((k==='rate'?1000:800)*Math.pow(k==='rate'?1.45:1.14,state.offUp[k])); }
-function routeMult(){ return ROUTES.find(r=>r.id===state.route).mult; }
+function routeMult(){ return (ROUTES.find(r=>r.id===state.route)||ROUTES[0]).mult; }
 let buyMode='1'; const sortMode={fleet:'recommended',garage:'recommended'};
 function purchaseQuote(costAt, level, cap){
   const remaining=Math.max(0,cap-level), wanted=buyMode==='max'?5000:Math.max(1,+buyMode||1);
@@ -283,7 +319,7 @@ function calcSpeedPure(){
   return (10+2*state.upgrades.turbo)*(1+0.08*state.upgrades.gearbox);
 }
 function visSpeed(){ return 70+Math.min(cachedSpeed*1.6,450)+(sim.od.active?50:0); }
-function gpsMult(){ return (1+0.15*state.upgrades.gps)*(1+0.10*state.auto.sorting); }
+function gpsMult(){ return (1+0.15*state.upgrades.gps)*(1+0.10*state.auto.sorting)*(TIMELINES[state.timeline].pkg||1); }
 function gainRep(n){ state.reputation += n*(1+0.10*state.upgrades.chrome); }
 function tapeReward(){
   return Math.floor(Math.sqrt(Math.max(0,state.distance)/CONFIG.tapeDivisor)*(1+0.15*state.prestige.temporal));
@@ -572,7 +608,7 @@ function doDelivery(){
 /* ---------------- AUTOPILOT ---------------- */
 function autoThink(){
   if(!state.auto.apilot || !sim.autoOn) return;
-  const vs=visSpeed(), lt=1/(3.2*(1+0.08*state.upgrades.tires)), HZ=3.0, M=.3, p=sim.lanePos, T=sim.target;
+  const vs=visSpeed(), lt=1/(3.2*(1+0.08*state.upgrades.tires)*(TIMELINES[state.timeline].grip||1)), HZ=3.0, M=.3, p=sim.lanePos, T=sim.target;
   const cars=[];
   for(const c of sim.traffic){ if(c.z<=40) continue; const cl=Math.max(1,vs-c.spd), t=(c.z-60)/cl; if(t>9) continue; cars.push({l:c.lane,t,h:6/cl}); }
   const pk=l=>sim.packages.some(q=>q.lane===l&&q.z>90&&q.z<900);
@@ -600,7 +636,7 @@ function spawnStuff(dt){
   const dens = sim.ev&&sim.ev.id==='rival'?1.9 : sim.ev&&sim.ev.id==='police'?2.3 : 1;
   if(sim.trafficT<=0 && sim.traffic.length<16){
     sim.trafficT=rand(1.5,2.6)/dens;
-    const tl=visualTimeline(undefined,true),types=tl.env==='city'?['sedan','sedan','van','truck','bike','sport','wagon','hover']:['sedan','sedan','van','truck','bike','sport','wagon','pickup'];
+    const tl=visualTimeline(undefined,true),types=isCityEnv(tl.env)?['sedan','sedan','van','truck','bike','sport','wagon','hover']:['sedan','sedan','van','truck','bike','sport','wagon','pickup'];
     const ty=pick(types),spd=ty==='bike'?rand(40,56):(['sport','hover'].includes(ty)?rand(48,66):['truck','pickup'].includes(ty)?rand(18,30):rand(24,38));
     // never spawn an unavoidable 3-lane wall: skip lanes where both other lanes already have a car arriving within ~1.1s of this one
     const vN=visSpeed(), arr=(z,sp)=>(z-60)/Math.max(1,vN-sp), tn=arr(2200,spd);
@@ -636,10 +672,10 @@ function spawnStuff(dt){
       if(Math.random()<0.3) sim.scenery.push({type:'bill', abs:z+60, side:Math.random()<0.5?-1:1, off:rand(12,20), seed:Math.random()});
       if(tl.stageId==='skybridge'&&z%2700<100)sim.scenery.push({type:'bridge',abs:z+70,side:0,off:0,seed:sd});
     }
-    if(Math.random()<0.45){ const cty=tl.env==='city'; sim.scenery.push({type:'bldg', abs:z+rand(0,60), side:Math.random()<.5?-1:1, off:cty?rand(15,30):rand(22,46), seed:Math.random()}); }
+    if(Math.random()<0.45){ const cty=isCityEnv(tl.env); sim.scenery.push({type:'bldg', abs:z+rand(0,60), side:Math.random()<.5?-1:1, off:cty?rand(15,30):rand(22,46), seed:Math.random()}); }
       sim.nextSc+=100;
     }
-    if(tl.env==='city'){
+    if(isCityEnv(tl.env)){
     while(sim.nextGate < sim.travel+2300){
       sim.scenery.push({type:'gate', abs:sim.nextGate, side:0, off:0, seed:Math.random()});
       sim.nextGate+=460;
@@ -707,7 +743,7 @@ function update(dt){
   else if(regionStep!==sim.regionStep){sim.regionStep=regionStep;const profile=visualTimeline();R.stageKey='';toast('ENTERING · '+profile.regionName,'event',2600);el('regionBadge').classList.remove('region-enter');void el('regionBadge').offsetWidth;el('regionBadge').classList.add('region-enter');}
   sim.curve=Math.sin(sim.travel*0.0011)*0.75+Math.sin(sim.travel*0.00034+1.7)*0.35;
 
-  const rate=3.2*(1+0.08*state.upgrades.tires);
+  const rate=3.2*(1+0.08*state.upgrades.tires)*(TIMELINES[state.timeline].grip||1);
   const d=sim.target-sim.lanePos;
   if(Math.abs(d)>0.002) sim.lanePos+=Math.sign(d)*Math.min(Math.abs(d),rate*dt);
 
@@ -736,11 +772,13 @@ function update(dt){
     toast('MILESTONE '+fmt(MILESTONES[state.msIdx-1])+' KM — +'+fmt(cr)+' CR','reward');
     AudioSys.sfx('success');
   }
-  if(state.lifetimeDistance>=TIMELINES.t1989.unlock && !state.unlocked.includes('t1989')){
-    state.unlocked.push('t1989'); state.newTL=true;
-    AudioSys.sfx('prestige');
-    showModal('<h2>NEW TIMELINE UNLOCKED</h2><p>The desert rolls on forever, but the <b style="color:var(--cyan)">1989 · NEON CITY</b> grid has appeared on your dashboard.</p><p>Travel there from the TIMELINE tab for a <b>x1.5</b> income modifier and a brand-new skyline.</p>'+modalBtns([{label:'KEEP DRIVING',cls:'buy'}]));
-    saveGame();
+  for(const k in TIMELINES){
+    const T=TIMELINES[k];
+    if(state.lifetimeDistance>=T.unlock && !state.unlocked.includes(k)){
+      state.unlocked.push(k); state.newTL=true; AudioSys.sfx('prestige');
+      showModal('<h2>NEW TIMELINE UNLOCKED</h2><p>A new era has appeared on your dashboard: <b style="color:var(--cyan)">'+T.name+'</b>.</p><p>'+T.desc+'</p><p>Travel there from the TIMELINE tab for a <b>x'+T.mult+'</b> income modifier'+(T.mod?' and '+T.mod:'')+'.</p>'+modalBtns([{label:'KEEP DRIVING',cls:'buy'}]));
+      saveGame();
+    }
   }
   for(let i=sim.floats.length-1;i>=0;i--){const f=sim.floats[i];f.t-=dt;f.age+=dt;f.y-=(34+Math.min(24,f.age*30))*dt;if(f.t<=0)sim.floats.splice(i,1);}
   for(let i=sim.particles.length-1;i>=0;i--){const p=sim.particles[i];p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=150*dt;if(p.life<=0)sim.particles.splice(i,1);}
@@ -817,7 +855,7 @@ const R = {
     g.drawImage(this.sun, sunX-this.sun.width/2, hY-this.sun.height*0.42);
     this.drawAir(g,t);
     // background scenery
-    if(tl.env==='city') this.drawCity(g,tl); else this.drawRidges(g,tl);
+    if(isCityEnv(tl.env)) this.drawCity(g,tl); else this.drawRidges(g,tl);
     // ground
     g.fillStyle=tl.ground; g.fillRect(-12,hY,W+24,H-hY+14);
     if(tl.env==='coast')this.drawWater(g,tl,t);
@@ -863,15 +901,15 @@ const R = {
     }
   },
   drawCity(g,tl){
-    const hY=this.horizonY, W=this.W, H=this.H, shift=-sim.curve*70;
+    const hY=this.horizonY, W=this.W, H=this.H, shift=-sim.curve*70, cy=tl.env==='cyber';
     g.fillStyle=tl.ridge;
     for(const b of this.city2){
-      const x=b.x*W*1.45-W*0.22+shift*0.55, bw=b.w*W, bh=b.h*H;
+      const x=b.x*W*1.45-W*0.22+shift*0.55, bw=b.w*W, bh=Math.min(b.h*H*(cy?1.5:1),hY-8);
       g.fillRect(x,hY-bh,bw,bh);
     }
     const wcols=[tl.edge,tl.edge2,tl.dash];
     for(const b of this.city){
-      const x=b.x*W*1.45-W*0.22+shift, bw=b.w*W, bh=b.h*H*1.1;
+      const x=b.x*W*1.45-W*0.22+shift, bw=b.w*W, bh=Math.min(b.h*H*(cy?1.9:1.1),hY-6);
       g.fillStyle='#151030'; g.fillRect(x,hY-bh,bw,bh);
       if(bw>24){
         const cols=Math.floor(bw/11), rows=Math.min(28,Math.floor(bh/15));
@@ -881,6 +919,7 @@ const R = {
         }
       }
       g.fillStyle=tl.edge; g.globalAlpha=0.75; g.fillRect(x,hY-bh-2,bw,2); g.globalAlpha=1;
+      if(cy&&b.seed%3<1.3){ g.fillStyle=tl.edge2; g.globalAlpha=.7; g.fillRect(x+bw-3,hY-bh,3,bh*.7); g.globalAlpha=1; }
     }
   },
   drawWater(g,tl,t){
@@ -1020,7 +1059,7 @@ const R = {
   },
   drawBldg(g,x,y,s,seed,tl){
     if(s<.9) return;
-    const h1=n=>hash1(seed*313+n), city=tl.env==='city';
+    const h1=n=>hash1(seed*313+n), city=isCityEnv(tl.env);
     const w=(4+h1(1)*5)*s, h=(city?6+h1(2)*16:3+h1(2)*5)*s, c=[tl.edge,tl.edge2,'#FF784F','#F9D68A'][Math.floor(h1(3)*4)];
     g.fillStyle=city?'#120d2a':'#17112c'; g.fillRect(x-w/2,y-h,w,h);
     g.fillStyle=c; g.globalAlpha*=.8; g.fillRect(x-w/2,y-h-.25*s,w,.25*s); g.globalAlpha/=.8;
@@ -1073,7 +1112,7 @@ const R = {
     const h1=n=>hash1(seed*977+n), cols=[tl.edge,tl.edge2,'#FF784F','#F9D68A','#7554D9','#7DF3EF'];
     const c1=cols[Math.floor(h1(1)*6)], c2=cols[Math.floor(h1(2)*6)], st=Math.floor(h1(3)*5);
     const h=(1.7+h1(5)*1.4)*s, hy=(1.3+h1(6)*1.8)*s;
-    const WD=['OUTRUN','NIGHT','DRIVE','NEON','CR++','TAPE','DINER','MOTEL','TURBO','24H','OPEN','CHROME','RADIO','FUEL','1984','SYNTH','GAS','VEGAS','PALM','LASER','COLA','ARCADE','HOTEL','MIAMI','MIDNIGHT CAFE','SUNSET BLVD','SPEED SHOP'];
+    const WD=tl.words||['OUTRUN','NIGHT','DRIVE','NEON','CR++','TAPE','DINER','MOTEL','TURBO','24H','OPEN','CHROME','RADIO','FUEL','1984','SYNTH','GAS','VEGAS','PALM','LASER','COLA','ARCADE','HOTEL','MIAMI','MIDNIGHT CAFE','SUNSET BLVD','SPEED SHOP'];
     const word=WD[Math.floor(h1(7)*WD.length)];
     let fs=h*(st===3?.5:.6); g.font='700 '+fs+'px Orbitron, monospace';
     let tw=g.measureText(word).width; const pad=h*.8, k=st===4?1.35:1, maxW=(st===3?5.4:8)*s;
@@ -1344,6 +1383,7 @@ const I = {
   v_int:'<svg viewBox="0 0 64 28"><path d="M2 21l11-8 18-3 20 5 9 2 1 4h-7a5 5 0 0 0-10 0H25a5 5 0 0 0-10 0z"/><circle cx="19" cy="21" r="3.4"/><circle cx="47" cy="21" r="3.4"/><path d="M38 9l7-2 3 2M14 13l6-3"/></svg>',
   v_cru:'<svg viewBox="0 0 64 28"><path d="M5 21c0-8 5-12 15-12h24c9 0 15 4 15 12h-7a5 5 0 0 0-10 0H22a5 5 0 0 0-10 0z"/><circle cx="17" cy="21" r="3.4"/><circle cx="47" cy="21" r="3.4"/><path d="M14 13c2-3 6-4 10-4h5v5H14zM33 9h6c4 0 7 1 9 4H33z"/></svg>',
   v_hov:'<svg viewBox="0 0 64 28"><path d="M8 19c0-7 9-11 24-11s24 4 24 11c0 2-2 3-4 3H12c-2 0-4-1-4-3z"/><path d="M42 9l6-4 1 5M14 26h36" stroke-dasharray="4 3"/></svg>',
+  v_pha:'<svg viewBox="0 0 64 28"><path d="M3 18c4-6 14-9 29-9s25 3 29 9c0 2-2 3-4 3H7c-2 0-4-1-4-3z"/><path d="M14 14h36M22 11h20"/><path d="M6 25h52M12 27h40" stroke-dasharray="3 3"/></svg>',
   v_hau:'<svg viewBox="0 0 64 28"><path d="M2 21V7h24v14zM26 12h13l9 6v3h-4a5 5 0 0 0-10 0h-8z"/><circle cx="12" cy="21" r="3.4"/><circle cx="36" cy="21" r="3.4"/><circle cx="47" cy="21" r="3.4"/><path d="M6 11h14M6 15h14"/></svg>',
 };
 function icon(n){ return '<span class="ic">'+(I[n]||'')+'</span>'; }
@@ -1434,8 +1474,8 @@ function buildFleet(){
   }
   const rl=state.offUp.rate, cl=state.offUp.cap, hh=l=>(3600+1800*l)/3600;
   html+='<h3 class="sect">OFFLINE EARNINGS</h3><div class="pstats" id="offNow" style="margin:0 0 10px"></div>';
-  html+=rowHTML({icon:'compass',color:'#F9D68A'},'Offline Rate',rl,'Share of your income earned while the game is closed. 5% up to 100%, in 5% steps.','Now: '+(5+5*rl)+'%'+(rl<19?' &nbsp;→&nbsp; Next: <b>'+(10+5*rl)+'%</b>':''),'<button class="btn buy" data-act="off" data-id="rate" id="ob_rate"></button>');
-  html+=rowHTML({icon:'hourglass',color:'#F9D68A'},'Offline Cap',cl,'Longest away time that counts. 1 hour up to 24 hours, in 30 minute steps.','Now: '+hh(cl)+'h'+(cl<46?' &nbsp;→&nbsp; Next: <b>'+hh(cl+1)+'h</b>':''),'<button class="btn buy" data-act="off" data-id="cap" id="ob_cap"></button>');
+  html+=rowHTML({icon:'compass',color:'#F9D68A'},'Offline Rate',rl,'Share of your income earned while the game is closed. 5% up to 100%, in 5% steps. Resets on Dawnbreak.','Now: '+(5+5*rl)+'%'+(rl<19?' &nbsp;→&nbsp; Next: <b>'+(10+5*rl)+'%</b>':''),'<button class="btn buy" data-act="off" data-id="rate" id="ob_rate"></button>');
+  html+=rowHTML({icon:'hourglass',color:'#F9D68A'},'Offline Cap',cl,'Longest away time that counts. 1 hour up to 24 hours, in 30 minute steps. Resets on Dawnbreak.','Now: '+hh(cl)+'h'+(cl<46?' &nbsp;→&nbsp; Next: <b>'+hh(cl+1)+'h</b>':''),'<button class="btn buy" data-act="off" data-id="cap" id="ob_cap"></button>');
   p.innerHTML=html;
   { const sel=p.querySelector('[data-sort]'); sel.value=sortMode.fleet; sel.addEventListener('change',e=>{ sortMode.fleet=e.target.value; sortPanel('fleet',e.target.value); }); sortPanel('fleet',sortMode.fleet); }
   for(const v of FLEET){
@@ -1511,17 +1551,20 @@ function buildGarage(){
 /* ---- ROUTES panel ---- */
 function buildRoutes(){
   const p=el('p-routes'); PUP=[];
-  let html='<div class="phead"><h2>ROUTES</h2><p>Assign your fleet to a delivery route. Higher routes multiply all fleet income. Routes unlock with lifetime distance and stay unlocked forever.</p>'
-    +'<div class="pstats">ACTIVE MULTIPLIER x'+routeMult().toFixed(2)+'</div></div>';
+  const owned=ROUTES.filter(r=>state.routesOwned[r.id]).length;
+  let html='<div class="phead"><h2>ROUTES</h2><p>Assign your fleet to a delivery route. Higher routes multiply all fleet income. Each route needs lifetime distance <b>and</b> a one-time payment, and must be bought again after Dawnbreak.</p>'
+    +'<div class="pstats">ACTIVE MULTIPLIER x'+routeMult().toFixed(2)+' · '+owned+'/'+ROUTES.length+' OWNED</div></div>';
   for(const r of ROUTES){
-    const unlocked=state.lifetimeDistance>=r.req, active=state.route===r.id;
-    html+='<div class="tcard'+(active?' active':'')+(unlocked?'':' locked')+'"><div class="yr" style="font-size:18px;color:var(--cyan)">x'+r.mult.toFixed(2)+'</div>'
-      +'<div class="tinfo"><h4 style="font-family:var(--font-n);font-size:13px">'+r.name+'</h4><p>'+r.desc+'</p>'
-      +'<p style="color:var(--horizon)">'+(unlocked?(active?'● ACTIVE ROUTE':'Unlocked'):'Requires '+fmt(r.req)+' km lifetime')+'</p>'+(unlocked?'':'<div class="unlock-progress" aria-label="Unlock progress"><i style="width:'+clamp(state.lifetimeDistance/Math.max(1,r.req)*100,0,100)+'%"></i></div>')+'</div>'
-      +(unlocked&&!active?'<button class="btn" data-act="route" data-id="'+r.id+'">ASSIGN</button>':'')
-      +'</div>';
+    const have=!!state.routesOwned[r.id], reached=state.lifetimeDistance>=r.req, active=state.route===r.id;
+    let status,btn='',bar='';
+    if(have){ status=active?'● ACTIVE ROUTE':'Owned'; if(!active) btn='<button class="btn" data-act="route" data-id="'+r.id+'">ASSIGN</button>'; }
+    else if(reached){ status='Available · '+fmt(r.cost)+' CR'; btn='<button class="btn buy" data-act="routebuy" data-id="'+r.id+'" id="rb_'+r.id+'"></button>'; }
+    else { status='Requires '+fmt(r.req)+' km lifetime, then '+fmt(r.cost)+' CR'; bar='<div class="unlock-progress" aria-label="Unlock progress"><i style="width:'+clamp(state.lifetimeDistance/Math.max(1,r.req)*100,0,100)+'%"></i></div>'; }
+    html+='<div class="tcard'+(active?' active':'')+(have||reached?'':' locked')+'"><div class="yr" style="font-size:18px;color:var(--cyan)">x'+r.mult.toFixed(2)+'</div>'
+      +'<div class="tinfo"><h4 style="font-family:var(--font-n);font-size:13px">'+r.name+'</h4><p>'+r.desc+'</p><p style="color:var(--horizon)">'+status+'</p>'+bar+'</div>'+btn+'</div>';
   }
   p.innerHTML=html;
+  for(const r of ROUTES){ const b=el('rb_'+r.id); if(b) bindUpd(b,()=>({t:'UNLOCK · '+fmt(r.cost)+' CR',d:state.credits<r.cost})); }
   runUpdaters();
 }
 /* ---- TIMELINE panel ---- */
@@ -1532,7 +1575,7 @@ function buildTimeline(){
     const tl=TIMELINES[k], unlocked=state.unlocked.includes(k), active=state.timeline===k;
     html+='<div class="tcard'+(active?' active':'')+(unlocked?'':' locked')+'"><div class="yr">'+tl.short+'</div>'
       +'<div class="tinfo"><h4 style="font-family:var(--font-n);font-size:13px;color:'+(active?'var(--cyan)':'inherit')+'">'+tl.name+'</h4><p>'+tl.desc+'</p>'
-      +'<p style="color:var(--horizon)">'+(unlocked?('Income x'+tl.mult.toFixed(1)+(active?' · ● YOU ARE HERE':'')):'Unlocks at '+fmt(tl.unlock)+' km lifetime distance')+'</p>'+(unlocked?'':'<div class="unlock-progress"><i style="width:'+clamp(state.lifetimeDistance/Math.max(1,tl.unlock)*100,0,100)+'%"></i></div>')+'</div>'
+      +'<p style="color:var(--horizon)">'+(unlocked?('Income x'+tl.mult.toFixed(1)+(tl.mod?' · '+tl.mod:'')+(active?' · ● YOU ARE HERE':'')):'Unlocks at '+fmt(tl.unlock)+' km lifetime distance')+'</p>'+(unlocked?'':'<div class="unlock-progress"><i style="width:'+clamp(state.lifetimeDistance/Math.max(1,tl.unlock)*100,0,100)+'%"></i></div>')+'</div>'
       +(unlocked&&!active?'<button class="btn" data-act="travel" data-id="'+k+'">TRAVEL</button>':'')
       +'</div>';
   }
@@ -1540,7 +1583,7 @@ function buildTimeline(){
   const gain=tapeReward(), ready=dawnbreakReady();
   html+='<h3 class="sect">DAWNBREAK</h3><div class="dawnbox">'
     +'<p>Fold this timeline back into the cassette. Dawnbreak resets your run in exchange for <b style="color:var(--horizon)">Cassette Tapes</b> — permanent currency for the upgrades below.</p>'
-    +'<div class="dawngrid"><div class="resetlist"><h5 class="h-reset">RESETS</h5><ul><li>Credits (minus Analog Memories)</li><li>Garage upgrades</li><li>Fleet &amp; automation</li><li>Run distance &amp; milestones</li><li>Active route</li></ul></div>'
+    +'<div class="dawngrid"><div class="resetlist"><h5 class="h-reset">RESETS</h5><ul><li>Credits (minus Analog Memories)</li><li>Garage upgrades</li><li>Fleet, automation &amp; offline upgrades</li><li>Run distance &amp; milestones</li><li>Routes (buy again)</li></ul></div>'
     +'<div class="resetlist"><h5 class="h-keep">RETAINED</h5><ul><li>Cassette Tapes</li><li>Permanent upgrades</li><li>Unlocked timelines</li><li>Data Fragments &amp; stats</li><li>Lifetime distance</li></ul></div></div>'
     +'<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap"><div><span class="bigtape" id="dGain">+'+gain+'</span> '+icon('tape')+' TAPES ON RESET</div>'
     +'<div style="flex:1;min-width:200px"><div class="hud-sub">RUN DISTANCE <span id="dDist">'+fmt(state.distance)+'</span> / '+fmt(CONFIG.prestigeThreshold)+' KM</div>'
@@ -1575,7 +1618,7 @@ function doDawnbreak(){
   if(!dawnbreakReady()||gain<1){ AudioSys.sfx('deny'); return; }
   showModal('<h2>INITIATE DAWNBREAK?</h2><p>The run ends. The sun comes up. A new cassette spins.</p>'
     +'<div class="statgrid"><div>Run distance<b>'+fmt(state.distance)+' km</b></div><div>Credits to reset<b>'+fmt(state.credits)+' CR</b></div><div>Prestige reward<b>+'+gain+' tapes</b></div><div>Current tapes<b>'+fmt(state.tapes)+'</b></div></div>'
-    +'<ul><li>Reset: credits, upgrades, fleet, automation, route, run distance</li>'
+    +'<ul><li>Reset: credits, upgrades, fleet, automation, routes, offline upgrades, run distance</li>'
     +'<li>Keep: <b style="color:var(--horizon)">'+gain+' Cassette Tapes</b>, permanent upgrades, timelines, stats</li></ul>'
     +modalBtns([{label:'CANCEL'},{label:'DAWNBREAK',cls:'warn',fn:()=>{
       state.runHistory=(state.runHistory||[]).concat([{distance:state.distance,tapes:gain,timestamp:Date.now()}]).slice(-8);
@@ -1584,7 +1627,7 @@ function doDawnbreak(){
       for(const u of GARAGE) state.upgrades[u.id]=0;
       for(const v of FLEET){ state.fleet[v.id]=0; state.fleetLv[v.id]=0; }
       for(const a of AUTO) state.auto[a.id]=0;
-      state.route='coastal'; state.distance=0; state.msIdx=0;
+      state.route='coastal'; state.routesOwned={coastal:true}; state.offUp={rate:0,cap:0}; state.distance=0; state.msIdx=0;
       sim.traffic=[];sim.packages=[];sim.boosts=[];sim.particles=[];sim.rival=null;sim.policeCar=null;sim.ev=null;
       sim.od={charge:0,active:false,t:0}; sim.collisionT=0; sim.invulnT=0;
       el('eventBanner').classList.add('hidden');
@@ -1622,8 +1665,14 @@ const ACTIONS = {
   },
   route(id){
     const r=ROUTES.find(x=>x.id===id);
-    if(state.lifetimeDistance<r.req){ AudioSys.sfx('deny'); return; }
+    if(!r||!state.routesOwned[id]){ AudioSys.sfx('deny'); return; }
     state.route=id; AudioSys.sfx('buy'); toast('Fleet assigned to '+r.name,'info'); saveGame(); buildRoutes();
+  },
+  routebuy(id){
+    const r=ROUTES.find(x=>x.id===id);
+    if(!r||state.routesOwned[id]||state.lifetimeDistance<r.req||state.credits<r.cost){ AudioSys.sfx('deny'); return; }
+    state.credits-=r.cost; state.routesOwned[id]=true; if(r.mult>routeMult()) state.route=id;
+    AudioSys.sfx('buy'); toast('ROUTE UNLOCKED — '+r.name,'reward'); saveGame(); buildRoutes();
   },
   travel(id){
     if(!state.unlocked.includes(id)){ AudioSys.sfx('deny'); return; }
@@ -1670,7 +1719,7 @@ document.querySelectorAll('.ntab').forEach(t=>t.addEventListener('click',()=>{ A
 /* ---------------- HUD / UI TICKS ---------------- */
 function missionInfo(){
   if(dawnbreakReady())return {title:'DAWNBREAK READY',text:'Reset this run for '+tapeReward()+' permanent Cassette Tape'+(tapeReward()===1?'':'s'),pct:100,tab:'timeline'};
-  const nextR=ROUTES.find(r=>r.req>state.lifetimeDistance);if(nextR)return {title:'ROUTE UNLOCK',text:nextR.name+' · '+fmt(nextR.req-state.lifetimeDistance)+' km to go',pct:state.lifetimeDistance/nextR.req*100,tab:'routes'};
+  const nextR=ROUTES.find(r=>!state.routesOwned[r.id]);if(nextR){ if(state.lifetimeDistance<nextR.req) return {title:'ROUTE UNLOCK',text:nextR.name+' · '+fmt(nextR.req-state.lifetimeDistance)+' km to go',pct:state.lifetimeDistance/nextR.req*100,tab:'routes'}; return {title:'ROUTE READY',text:nextR.name+' · '+fmt(nextR.cost)+' CR to unlock',pct:state.credits/nextR.cost*100,tab:'routes'}; }
   const nextT=Object.values(TIMELINES).find(t=>t.unlock>state.lifetimeDistance);if(nextT)return {title:'NEW TIMELINE',text:nextT.name+' · '+fmt(nextT.unlock-state.lifetimeDistance)+' km to go',pct:state.lifetimeDistance/nextT.unlock*100,tab:'timeline'};
   const milestone=MILESTONES.find(m=>m>state.distance);if(milestone)return {title:'NEXT DISTANCE MARK',text:fmt(milestone-state.distance)+' km to '+fmt(milestone)+' km',pct:state.distance/milestone*100,tab:'drive'};
   return {title:'NIGHT SHIFT',text:'Keep earning, upgrading, and delivering.',pct:100,tab:'fleet'};
@@ -1746,47 +1795,37 @@ el('lcL').addEventListener('click',()=>setLane(sim.target-1));
 el('lcR').addEventListener('click',()=>setLane(sim.target+1));
 
 /* ---------------- SETTINGS MODAL ---------------- */
-const SETTING_TIPS={"master": "Overall loudness for everything. Music, effects and engine all scale with it.", "music": "Volume of the background music only.", "sfx": "Volume of pickups, crashes, Overdrive and menu sounds.", "engine": "Volume of the engine hum, which rises with your speed.", "preset": "Quick mixes that set music, effects and engine volume in one go.", "scale": "Makes all interface text bigger or smaller.", "mute": "Silences all sound. Your volume levels are kept.", "reduced": "Turns off screen shake, speed streaks and most animations. Helps with motion sickness.", "contrast": "Boosts text and panel contrast on the HUD so it is easier to read.", "flashes": "Tones down pulsing glows and full-screen event overlays, for light sensitivity.", "streaks": "The speed lines that fly past at high speed and in Overdrive. Ignored when Reduced motion is on.", "scan": "A faint retro CRT line pattern over the whole screen.", "glow": "Neon glow around lights and the HUD. Turn off for a flatter look and slightly better performance.", "guides": "The dotted lines from your car to nearby pickups. Pickups are still pulled in when this is off.", "pausemenus": "Freezes driving while a tab other than Drive is open, so traffic cannot hit you while you shop.", "pausebg": "Freezes the game while this browser tab is hidden, and disables away earnings for that time.", "controls": "How touch screens steer: swipe, on-screen arrow buttons, or tapping the left or right side. Mouse and keyboard always work.", "palette": "Changes the color scheme of the road, sky and HUD.", "track": "Which music plays. Auto follows day and night. Shuffle picks a random track on a timer.", "trackmin": "How often Shuffle switches to a new random track. Only used when Music Track is set to Shuffle.", "daynight": "The sky slowly cycles between synthwave day and vaporwave night, about every 8 minutes."};
+const SETTING_TIPS={"reduced": "Turns off screen shake, speed streaks and most animations. Helps with motion sickness.", "contrast": "Boosts text and panel contrast on the HUD so it is easier to read.", "flashes": "Tones down pulsing glows and full-screen event overlays, for light sensitivity.", "pausemenus": "Freezes driving while a tab other than Drive is open, so traffic cannot hit you while you shop.", "pausebg": "Freezes the game while this browser tab is hidden, and disables away earnings for that time."};
 function si(k){ return '<span class="tip-i" tabindex="0" role="img" aria-label="'+SETTING_TIPS[k]+'" data-tip="'+SETTING_TIPS[k]+'">?</span>'; }
+const settingsOpen={audio:true,display:false,access:false,data:false,help:false};
+function offlineLine(){ const b=el('netBadge'); return b&&!b.classList.contains('hidden')?(navigator.onLine===false?'Offline now: playing from your device.':'Offline play: ready. Works with no connection, even in airplane mode.'):'Offline play: not installed on this device yet (needs one visit over HTTPS).'; }
 function openSettings(){
   const s=state.settings;
-  showModal('<h2>SETTINGS</h2>'
-    +'<div class="slrow"><span>MASTER VOL'+si('master')+'</span><input type="range" id="sMaster" min="0" max="1" step="0.05" value="'+s.master+'"><b id="vMaster">'+Math.round(s.master*100)+'%</b></div>'
-    +'<div class="slrow"><span>MUSIC VOL'+si('music')+'</span><input type="range" id="sMusic" min="0" max="1" step="0.05" value="'+s.music+'"><b id="vMusic">'+Math.round(s.music*100)+'%</b></div>'
-    +'<div class="slrow"><span>SFX VOL'+si('sfx')+'</span><input type="range" id="sSfx" min="0" max="1" step="0.05" value="'+s.sfx+'"><b id="vSfx">'+Math.round(s.sfx*100)+'%</b></div>'
-    +'<div class="slrow"><span>ENGINE VOL'+si('engine')+'</span><input type="range" id="sEngine" min="0" max="1" step="0.05" value="'+s.engine+'"><b id="vEngine">'+Math.round(s.engine*100)+'%</b></div>'
-    +'<div class="slrow"><label for="sAudioPreset">AUDIO PRESET'+si('preset')+'</label><select id="sAudioPreset"><option value="custom">Custom</option><option value="quiet">Quiet cruise</option><option value="balanced">Balanced</option><option value="engine">Engine forward</option></select><b></b></div>'
-    +'<div class="settings-section">ACCESSIBILITY & CONTROLS</div>'
-    +'<div class="slrow"><label for="sScale">TEXT SIZE'+si('scale')+'</label><input type="range" id="sScale" min="0.85" max="1.25" step="0.05" value="'+s.uiScale+'"><b id="vScale">'+Math.round(s.uiScale*100)+'%</b></div>'
-    +'<label class="chkrow"><input type="checkbox" id="sMute" '+(s.muted?'checked':'')+'> Mute all audio'+si('mute')+'</label>'
-    +'<label class="chkrow"><input type="checkbox" id="sReduced" '+(s.reduced?'checked':'')+'> Reduced motion'+si('reduced')+'</label>'
-    +'<label class="chkrow"><input type="checkbox" id="sContrast" '+(s.highContrast?'checked':'')+'> High contrast HUD'+si('contrast')+'</label>'
-    +'<label class="chkrow"><input type="checkbox" id="sFlashes" '+(s.reduceFlashes?'checked':'')+'> Reduce pulsing flashes and event overlays'+si('flashes')+'</label>'
-    +'<label class="chkrow"><input type="checkbox" id="sStreaks" '+(s.speedStreaks?'checked':'')+'> Speed streaks (when motion is enabled)'+si('streaks')+'</label>'
-    +'<label class="chkrow"><input type="checkbox" id="sScanlines" '+(s.scanlines?'checked':'')+'> Scanline overlay'+si('scan')+'</label>'
-    +'<label class="chkrow"><input type="checkbox" id="sGlow" '+(s.glowEffects?'checked':'')+'> Neon glow lighting'+si('glow')+'</label>'
-    +'<label class="chkrow"><input type="checkbox" id="sGuides" '+(s.pickupGuides?'checked':'')+'> Pickup guide lines'+si('guides')+'</label>'
-    +'<label class="chkrow"><input type="checkbox" id="sPauseMenus" '+(s.pauseMenus?'checked':'')+'> Pause active driving while viewing menus'+si('pausemenus')+'</label>'
-    +'<label class="chkrow"><input type="checkbox" id="sPauseBg" '+(s.pauseBackground?'checked':'')+'> Pause progress while this tab is hidden (disable offline earnings)'+si('pausebg')+'</label>'
-    +'<div class="slrow"><label for="sControls">TOUCH CONTROL'+si('controls')+'</label><select id="sControls"><option value="swipe" '+(s.controls==='swipe'?'selected':'')+'>Swipe / arrows</option><option value="buttons" '+(s.controls==='buttons'?'selected':'')+'>On-screen arrows</option><option value="tap" '+(s.controls==='tap'?'selected':'')+'>Tap screen sides</option></select><b></b></div>'
-    +'<div class="slrow"><label for="sPalette">COLOR THEME'+si('palette')+'</label><select id="sPalette"><option value="sunset" '+(s.palette==='sunset'?'selected':'')+'>Sunset</option><option value="ocean" '+(s.palette==='ocean'?'selected':'')+'>Ocean</option><option value="arcade" '+(s.palette==='arcade'?'selected':'')+'>Arcade</option><option value="mono" '+(s.palette==='mono'?'selected':'')+'>Monochrome</option></select><b></b></div>'
-    +'<div class="slrow"><label for="sTrack">MUSIC TRACK'+si('track')+'</label><select id="sTrack"><option value="auto" '+(s.track==='auto'?'selected':'')+'>Auto (day / night)</option><option value="shuffle" '+(s.track==='shuffle'?'selected':'')+'>Shuffle (timer)</option>'+Object.keys(TRACKS).map(k=>'<option value="'+k+'" '+(s.track===k?'selected':'')+'>'+TRACKS[k].name+'</option>').join('')+'</select></div>'
-    +'<div class="slrow"><label for="sTrackMin">SHUFFLE EVERY'+si('trackmin')+'</label><select id="sTrackMin" '+(s.track==='shuffle'?'':'disabled')+'>'+[1,2,3,5,10,15,30].map(m=>'<option value="'+m+'" '+(s.trackMinutes===m?'selected':'')+'>'+m+' min</option>').join('')+'</select><b></b></div>'
-    +'<label class="chkrow"><input type="checkbox" id="sDayNight" '+(s.dayNight?'checked':'')+'> Day / night cycle (synthwave day, vaporwave night)'+si('daynight')+'</label>'
-    +'<p style="font-size:12px;opacity:.55">Progress saves automatically every 10s and when you leave. Offline earnings: '+Math.round(offEff()*100)+'% rate, capped at '+(offCapS()/3600)+'h.</p>'
-    +modalBtns([
-      {label:'SAVE NOW',fn:()=>{ saveGame(); toast('Game saved','info'); closeModal(); }},
-      {label:'HARD RESET',cls:'warn',fn:()=>{
-        showModal('<h2>ERASE EVERYTHING?</h2><p>This deletes your entire save — credits, fleet, tapes, everything. There is no undo.</p>'
-          +modalBtns([{label:'KEEP MY SAVE'},{label:'ERASE ALL DATA',cls:'warn',fn:()=>{ wipeSave(); location.reload(); }}]));
-      }},
-      {label:'ABOUT & HELP',fn:openAbout},
-      {label:'GUIDED TUTORIAL',fn:()=>openTour(0)},
-      {label:'STATISTICS',fn:openStats},
-      {label:'EXPORT SAVE',fn:exportSave},
-      {label:'IMPORT SAVE',fn:importSave},
-      {label:'CLOSE',cls:'buy',fn:closeModal},
-    ])+'<p style="text-align:center;font-size:11px;opacity:.5;margin-top:14px">Made With ❤️ By <a href="https://ko-fi.com/kungpowunicorn" target="_blank" rel="noopener" style="color:inherit">KungPowUnicorn</a></p>');
+  const grp=(id,title,body)=>'<details class="sgroup" data-g="'+id+'"'+(settingsOpen[id]?' open':'')+'><summary>'+title+'</summary><div class="sbody">'+body+'</div></details>';
+  const chk=(id,on,label,tip)=>'<label class="chkrow"><input type="checkbox" id="'+id+'" '+(on?'checked':'')+'> '+label+(tip?si(tip):'')+'</label>';
+  const sl=(id,vid,label,val,min,max,step,tip)=>'<div class="slrow"><span>'+label+(tip?si(tip):'')+'</span><input type="range" id="'+id+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'"><b id="'+vid+'">'+Math.round(val*100)+'%</b></div>';
+  const sel=(id,label,opts,tip,dis)=>'<div class="slrow"><label for="'+id+'">'+label+(tip?si(tip):'')+'</label><select id="'+id+'"'+(dis?' disabled':'')+'>'+opts+'</select><b></b></div>';
+  const op=(v,t,cur)=>'<option value="'+v+'"'+(cur===v?' selected':'')+'>'+t+'</option>';
+  const audio=sl('sMaster','vMaster','MASTER VOL',s.master,0,1,.05)+sl('sMusic','vMusic','MUSIC VOL',s.music,0,1,.05)+sl('sSfx','vSfx','SFX VOL',s.sfx,0,1,.05)+sl('sEngine','vEngine','ENGINE VOL',s.engine,0,1,.05)
+    +sel('sAudioPreset','AUDIO PRESET','<option value="custom">Custom</option><option value="quiet">Quiet cruise</option><option value="balanced">Balanced</option><option value="engine">Engine forward</option>')
+    +chk('sMute',s.muted,'Mute all audio')
+    +sel('sTrack','MUSIC TRACK',op('auto','Auto (day / night)',s.track)+op('shuffle','Shuffle (timer)',s.track)+Object.keys(TRACKS).map(k=>op(k,TRACKS[k].name,s.track)).join(''))
+    +sel('sTrackMin','SHUFFLE EVERY',[1,2,3,5,10,15,30].map(m=>'<option value="'+m+'"'+(s.trackMinutes===m?' selected':'')+'>'+m+' min</option>').join(''),null,s.track!=='shuffle');
+  const display=sel('sPalette','COLOR THEME',op('sunset','Sunset',s.palette)+op('ocean','Ocean',s.palette)+op('arcade','Arcade',s.palette)+op('mono','Monochrome',s.palette))
+    +chk('sDayNight',s.dayNight,'Day / night cycle (synthwave day, vaporwave night)')+chk('sStreaks',s.speedStreaks,'Speed streaks (when motion is enabled)')+chk('sScanlines',s.scanlines,'Scanline overlay')+chk('sGlow',s.glowEffects,'Neon glow lighting')+chk('sGuides',s.pickupGuides,'Pickup guide lines');
+  const access=sl('sScale','vScale','TEXT SIZE',s.uiScale,0.85,1.25,.05)+chk('sReduced',s.reduced,'Reduced motion','reduced')+chk('sContrast',s.highContrast,'High contrast HUD','contrast')+chk('sFlashes',s.reduceFlashes,'Reduce pulsing flashes and event overlays','flashes')
+    +sel('sControls','TOUCH CONTROL',op('swipe','Swipe / arrows',s.controls)+op('buttons','On-screen arrows',s.controls)+op('tap','Tap screen sides',s.controls))
+    +chk('sPauseMenus',s.pauseMenus,'Pause active driving while viewing menus','pausemenus')+chk('sPauseBg',s.pauseBackground,'Pause progress while this tab is hidden (disable offline earnings)','pausebg');
+  const data='<div class="sbtns"><button class="btn buy" data-sa="save">SAVE NOW</button><button class="btn" data-sa="stats">STATISTICS</button><button class="btn" data-sa="exp">EXPORT SAVE</button><button class="btn" data-sa="imp">IMPORT SAVE</button><button class="btn warn" data-sa="reset">HARD RESET</button></div>'
+    +'<p class="snote">Progress saves automatically every 10s and when you leave. Offline earnings: '+Math.round(offEff()*100)+'% rate, capped at '+(offCapS()/3600)+'h.</p><p class="snote" id="offLine">'+offlineLine()+'</p>';
+  const help='<div class="sbtns"><button class="btn" data-sa="about">ABOUT &amp; HELP</button><button class="btn" data-sa="tour">GUIDED TUTORIAL</button></div>';
+  showModal('<h2>SETTINGS</h2>'+grp('audio','AUDIO',audio)+grp('display','DISPLAY &amp; EFFECTS',display)+grp('access','ACCESSIBILITY &amp; CONTROLS',access)+grp('data','SAVE &amp; DATA',data)+grp('help','HELP',help)
+    +'<div class="sbtns"><button class="btn buy" data-sa="close">CLOSE</button></div>'
+    +'<p style="text-align:center;font-size:11px;opacity:.5;margin-top:10px">Made With ❤️ By <a href="https://ko-fi.com/kungpowunicorn" target="_blank" rel="noopener" style="color:inherit">KungPowUnicorn</a></p>');
+  const act={save:()=>{saveGame();toast('Game saved','info');},stats:openStats,exp:exportSave,imp:importSave,about:openAbout,tour:()=>openTour(0),close:closeModal,
+    reset:()=>showModal('<h2>ERASE EVERYTHING?</h2><p>This deletes your entire save — credits, fleet, tapes, everything. There is no undo.</p>'+modalBtns([{label:'KEEP MY SAVE'},{label:'ERASE ALL DATA',cls:'warn',fn:()=>{ wipeSave(); location.reload(); }}]))};
+  el('modalRoot').querySelectorAll('[data-sa]').forEach(b=>b.addEventListener('click',()=>{ AudioSys.sfx('click'); act[b.dataset.sa](); }));
+  el('modalRoot').querySelectorAll('details.sgroup').forEach(d=>d.addEventListener('toggle',()=>{ settingsOpen[d.dataset.g]=d.open; }));
   const wire=(id,key,vid)=>{ const i=el(id); i.addEventListener('input',()=>{ state.settings[key]=+i.value; el(vid).textContent=Math.round(i.value*100)+'%'; AudioSys.applyVol(); }); };
   wire('sMaster','master','vMaster');wire('sMusic','music','vMusic');wire('sSfx','sfx','vSfx');wire('sEngine','engine','vEngine');
   el('sAudioPreset').addEventListener('change',e=>{const presets={quiet:[0.3,0.45,0.25],balanced:[0.55,0.8,0.65],engine:[0.35,0.7,1]};const v=presets[e.target.value];if(!v)return;[['sMusic','music','vMusic'],['sSfx','sfx','vSfx'],['sEngine','engine','vEngine']].forEach(([id,key,label],i)=>{state.settings[key]=v[i];el(id).value=v[i];el(label).textContent=Math.round(v[i]*100)+'%';});AudioSys.applyVol();});
@@ -1808,8 +1847,8 @@ function openAbout(){
 <h3>ON THE ROAD</h3><ul><li>Blue boxes are <b>standard</b> packages, orange are <b>rush</b> (big payout), light-cyan bolts are <b>Energy Cells</b> (charge Overdrive), magenta diamonds are <b>Data Fragments</b> (+1% income each, permanent).</li><li>Cars are obstacles. A collision slows you for 3s but never costs credits.</li><li>Change lanes just before a car passes for a <b>close call</b>: bonus credits and Overdrive charge.</li><li>A <b>delivery</b> pays out automatically every 10s.</li></ul>
 <h3>OVERDRIVE</h3><p>15s of x5 income and faster driving. NOS Booster and Infinite Overdrive improve it. It does not apply offline.</p>
 <h3>EVENTS</h3><ul><li><b>Neon Diner</b>: drive through the lights for credits and x2 income for 30s.</li><li><b>Rival Racer</b>: survive 30s without a collision for credits, reputation and a speed bonus.</li><li><b>Police Pursuit</b>: survive 25s without touching anything. Failing costs income x0.55 for 20s. Credits are never lost.</li></ul>
-<h3>TABS</h3><ul><li><b>Fleet</b>: buy vehicles that earn on their own, level them, and buy automation.</li><li><b>Routes</b>: multiply fleet income; unlocked by lifetime distance.</li><li><b>Garage</b>: upgrade your own car.</li><li><b>Timeline</b>: switch eras, and perform Dawnbreak.</li></ul>
-<h3>DAWNBREAK</h3><p>At 25,000 km you can reset credits, upgrades, fleet and route for Cassette Tapes. Spend tapes on permanent upgrades. Timelines, tapes, fragments and stats are kept.</p>
+<h3>TABS</h3><ul><li><b>Fleet</b>: buy vehicles that earn on their own, level them, and buy automation.</li><li><b>Routes</b>: multiply fleet income. Each needs lifetime distance and a one-time payment, and is re-bought after Dawnbreak.</li><li><b>Garage</b>: upgrade your own car.</li><li><b>Timeline</b>: switch eras, and perform Dawnbreak.</li></ul>
+<h3>DAWNBREAK</h3><p>At 25,000 km you can reset credits, upgrades, fleet, routes and offline upgrades for Cassette Tapes. Spend tapes on permanent upgrades. Timelines, tapes, fragments and stats are kept.</p>
 <h3>OFFLINE &amp; SAVING</h3><p>The game saves every 10s and when you leave. While away you earn at your Offline Rate (starts at 5%, upgradeable to 100%) for up to your Offline Cap (starts at 1 hour, upgradeable to 24 hours). Upgrade both in the Fleet tab. Hover or tap any top-bar icon for a tooltip. Settings has Export and Import for backing up your save.</p>`+'</div>'
   +modalBtns([{label:'BACK',fn:openSettings},{label:'CLOSE',cls:'buy',fn:closeModal}]));
 }
@@ -2027,3 +2066,18 @@ init();
   });
 })();
 syncFullBtn();
+
+/* ---------------- OFFLINE-READY BADGE ---------------- */
+async function updateNetBadge(){
+  const b=el('netBadge'); if(!b) return;
+  let ready=false;
+  try{ if('serviceWorker' in navigator&&navigator.serviceWorker.controller&&window.caches) ready=!!(await caches.match('game.js')); }catch(e){}
+  const online=navigator.onLine!==false;
+  b.classList.toggle('hidden',!ready); b.classList.toggle('off',!online);
+  b.querySelector('.nb-t').textContent=online?'OFFLINE READY':'OFFLINE MODE';
+  b.dataset.tip=online?'This game is installed for offline play. After this visit it runs with no connection, even in airplane mode.':'You are offline. The game is running from your device and saving locally.';
+  const o=el('offLine'); if(o) o.textContent=offlineLine();
+}
+addEventListener('online',updateNetBadge); addEventListener('offline',updateNetBadge);
+if('serviceWorker' in navigator){ navigator.serviceWorker.addEventListener('controllerchange',()=>setTimeout(updateNetBadge,800)); navigator.serviceWorker.ready.then(()=>setTimeout(updateNetBadge,800)).catch(()=>{}); }
+updateNetBadge();
