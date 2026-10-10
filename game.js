@@ -89,6 +89,7 @@ const PRESTIGE = [
   {id:'workforce',name:'Synthetic Workforce', icon:'chip',      max:10, costs:[1,2,4,6,9,12,16,20,25,30],  desc:l=>'+'+(25*l)+'% fleet income'},
   {id:'nav',      name:'Perfect Navigation',  icon:'compass',   max:10, costs:[1,2,4,6,9,12,16,20,25,30],  desc:l=>'+'+(12*l)+'% all income'},
   {id:'temporal', name:'Temporal Stability',  icon:'hourglass', max:5,  costs:[2,3,5,8,12],                desc:l=>'+'+(15*l)+'% Cassette Tapes from Dawnbreak'},
+  {id:'echo',     name:'Tape Echo',           icon:'tape',      max:10, costs:[1,2,3,5,7,10,14,19,25,32],  desc:l=>'+'+(5*l)+'% offline rate and +'+(0.5*l)+'h offline cap, kept through Dawnbreak'},
 ];
 function startCreditsFor(l){ return l<=0?0:Math.round(400*l*l); }
 const TPAL = [['#5a4f9f','#372e66'],['#9f4f86','#5e2e50'],['#3f8b8b','#255454'],['#8b7a3f','#544a25'],['#8b4f4f','#542e2e']];
@@ -171,7 +172,7 @@ function defaultState(){
     fleetLv:{coupe:0,interceptor:0,cruiser:0,hover:0,hauler:0,phantom:0},
     route:'coastal', routesOwned:{coastal:true}, offUp:{rate:0,cap:0},
     auto:{apilot:0,aod:0,synth:0,sorting:0,drones:0,qlogi:0},
-    prestige:{analog:0,odinf:0,workforce:0,nav:0,temporal:0},
+    prestige:{analog:0,odinf:0,workforce:0,nav:0,temporal:0,echo:0},
     settings:{master:0.8, music:0.55, sfx:0.8, engine:0.65, muted:false,
       reduced: window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches,
       pauseMenus:false, pauseBackground:false, highContrast:false, reduceFlashes:false, speedStreaks:true, scanlines:true, glowEffects:true, uiScale:1, controls:'swipe', palette:'sunset', dayNight:true, track:'auto', trackMinutes:3, pickupGuides:true},
@@ -275,8 +276,8 @@ function fleetCost(v){ return Math.ceil(v.cost*Math.pow(1.35, state.fleet[v.id])
 function fleetLvCost(v){ return Math.ceil(v.cost*3*Math.pow(1.6, state.fleetLv[v.id])); }
 function autoCost(a){ return Math.ceil(a.base*Math.pow(a.growth, state.auto[a.id])); }
 function prestigeCost(p){ const l=state.prestige[p.id]; return l>=p.max?Infinity:p.costs[l]; }
-function offEff(){ return 0.05*(1+state.offUp.rate); }
-function offCapS(){ return 3600+1800*state.offUp.cap; }
+function offEff(){ return Math.min(1,0.05*(1+state.offUp.rate+state.prestige.echo)); }
+function offCapS(){ return Math.min(86400,3600+1800*(state.offUp.cap+state.prestige.echo)); }
 function offCost(k){ return Math.ceil((k==='rate'?1000:800)*Math.pow(k==='rate'?1.45:1.14,state.offUp[k])); }
 function routeMult(){ return (ROUTES.find(r=>r.id===state.route)||ROUTES[0]).mult; }
 let buyMode='1'; const sortMode={fleet:'recommended',garage:'recommended'};
@@ -1472,10 +1473,10 @@ function buildFleet(){
       lvl>0?effectAuto(a,lvl):'Inactive — purchase or level up',
       '<button class="btn buy" data-act="auto" data-id="'+a.id+'" id="ab_'+a.id+'"></button>');
   }
-  const rl=state.offUp.rate, cl=state.offUp.cap, hh=l=>(3600+1800*l)/3600;
+  const rateMax=19-state.prestige.echo, capMax=46-state.prestige.echo, rl=state.offUp.rate, cl=state.offUp.cap, hh=l=>(3600+1800*l)/3600;
   html+='<h3 class="sect">OFFLINE EARNINGS</h3><div class="pstats" id="offNow" style="margin:0 0 10px"></div>';
-  html+=rowHTML({icon:'compass',color:'#F9D68A'},'Offline Rate',rl,'Share of your income earned while the game is closed. 5% up to 100%, in 5% steps. Resets on Dawnbreak.','Now: '+(5+5*rl)+'%'+(rl<19?' &nbsp;→&nbsp; Next: <b>'+(10+5*rl)+'%</b>':''),'<button class="btn buy" data-act="off" data-id="rate" id="ob_rate"></button>');
-  html+=rowHTML({icon:'hourglass',color:'#F9D68A'},'Offline Cap',cl,'Longest away time that counts. 1 hour up to 24 hours, in 30 minute steps. Resets on Dawnbreak.','Now: '+hh(cl)+'h'+(cl<46?' &nbsp;→&nbsp; Next: <b>'+hh(cl+1)+'h</b>':''),'<button class="btn buy" data-act="off" data-id="cap" id="ob_cap"></button>');
+  html+=rowHTML({icon:'compass',color:'#F9D68A'},'Offline Rate',rl,'Share of your income earned while the game is closed. 5% up to 100%, in 5% steps. Resets on Dawnbreak.','Now: '+Math.round(offEff()*100)+'%'+(rl<rateMax?' &nbsp;→&nbsp; Next: <b>'+Math.min(100,Math.round(offEff()*100)+5)+'%</b>':''),'<button class="btn buy" data-act="off" data-id="rate" id="ob_rate"></button>');
+  html+=rowHTML({icon:'hourglass',color:'#F9D68A'},'Offline Cap',cl,'Longest away time that counts. 1 hour up to 24 hours, in 30 minute steps. Resets on Dawnbreak.','Now: '+(offCapS()/3600)+'h'+(cl<capMax?' &nbsp;→&nbsp; Next: <b>'+Math.min(24,offCapS()/3600+0.5)+'h</b>':''),'<button class="btn buy" data-act="off" data-id="cap" id="ob_cap"></button>');
   p.innerHTML=html;
   { const sel=p.querySelector('[data-sort]'); sel.value=sortMode.fleet; sel.addEventListener('change',e=>{ sortMode.fleet=e.target.value; sortPanel('fleet',e.target.value); }); sortPanel('fleet',sortMode.fleet); }
   for(const v of FLEET){
@@ -1494,8 +1495,8 @@ function buildFleet(){
       const q=purchaseQuote(l=>Math.ceil(a.base*Math.pow(a.growth,l)),state.auto[a.id],a.max);return {t:(state.auto[a.id]?'LV+ ':'BUY ')+q.label+' · '+fmt(q.shown)+' CR',d:!q.enabled};
     });
   }
-  for(const k of ['rate','cap']) bindUpd(el('ob_'+k),()=>{const mx=k==='rate'?19:46,base=k==='rate'?1000:800,growth=k==='rate'?1.45:1.14;if(state.offUp[k]>=mx)return {t:'MAX LEVEL',d:true};const q=purchaseQuote(l=>Math.ceil(base*Math.pow(growth,l)),state.offUp[k],mx);return {t:'UPGRADE '+q.label+' · '+fmt(q.shown)+' CR',d:!q.enabled};});
-  bindUpd(el('offNow'),()=>'OFFLINE: '+Math.round(offEff()*100)+'% RATE · '+(offCapS()/3600)+'H CAP');
+  for(const k of ['rate','cap']) bindUpd(el('ob_'+k),()=>{const mx=(k==='rate'?19:46)-state.prestige.echo,base=k==='rate'?1000:800,growth=k==='rate'?1.45:1.14;if(state.offUp[k]>=mx)return {t:'MAX LEVEL',d:true};const q=purchaseQuote(l=>Math.ceil(base*Math.pow(growth,l)),state.offUp[k],mx);return {t:'UPGRADE '+q.label+' · '+fmt(q.shown)+' CR',d:!q.enabled};});
+  bindUpd(el('offNow'),()=>'OFFLINE: '+Math.round(offEff()*100)+'% RATE · '+(offCapS()/3600)+'H CAP'+(state.prestige.echo?' (INCL. TAPE ECHO)':''));
   const fs=el('fStats');
   bindUpd(fs, ()=>'FLEET INCOME '+fmt(cachedParts.fleet)+' CR/S · UNITS '+units);
   runUpdaters();
@@ -1592,7 +1593,7 @@ function buildTimeline(){
   html+='<h3 class="sect">PERMANENT UPGRADES</h3>';
   for(const pr of PRESTIGE){
     const lvl=state.prestige[pr.id];
-    html+=rowHTML({icon:pr.icon,color:'#F9D68A'}, pr.name, lvl, pr.desc(pr.levelDesc||0),
+    html+=rowHTML({icon:pr.icon,color:'#F9D68A'}, pr.name, lvl, 'Permanent. Bought with Cassette Tapes and kept through Dawnbreak.',
       'Now: '+pr.desc(lvl)+' → Next: <b>'+pr.desc(lvl+1)+'</b>',
       '<button class="btn buy" data-act="prestigebuy" data-id="'+pr.id+'" id="pb_'+pr.id+'"></button>');
   }
@@ -1682,7 +1683,7 @@ const ACTIONS = {
     toast('Timeline shifted — '+TIMELINES[id].name,'event'); saveGame(); buildTimeline();
   },
   dawnbreak(){ doDawnbreak(); },
-  off(k){const mx=k==='rate'?19:46,base=k==='rate'?1000:800,growth=k==='rate'?1.45:1.14,q=purchaseQuote(l=>Math.ceil(base*Math.pow(growth,l)),state.offUp[k],mx);if(!q.enabled){AudioSys.sfx('deny');return;}state.credits-=q.total;state.offUp[k]+=q.qty;AudioSys.sfx('buy');saveGame();buildFleet();},
+  off(k){const mx=(k==='rate'?19:46)-state.prestige.echo,base=k==='rate'?1000:800,growth=k==='rate'?1.45:1.14,q=purchaseQuote(l=>Math.ceil(base*Math.pow(growth,l)),state.offUp[k],mx);if(!q.enabled){AudioSys.sfx('deny');return;}state.credits-=q.total;state.offUp[k]+=q.qty;AudioSys.sfx('buy');saveGame();buildFleet();},
   prestigebuy(id){
     const pr=PRESTIGE.find(x=>x.id===id), c=prestigeCost(pr);
     if(state.prestige[id]>=pr.max||state.tapes<c){ AudioSys.sfx('deny'); return; }
@@ -1848,7 +1849,7 @@ function openAbout(){
 <h3>OVERDRIVE</h3><p>15s of x5 income and faster driving. NOS Booster and Infinite Overdrive improve it. It does not apply offline.</p>
 <h3>EVENTS</h3><ul><li><b>Neon Diner</b>: drive through the lights for credits and x2 income for 30s.</li><li><b>Rival Racer</b>: survive 30s without a collision for credits, reputation and a speed bonus.</li><li><b>Police Pursuit</b>: survive 25s without touching anything. Failing costs income x0.55 for 20s. Credits are never lost.</li></ul>
 <h3>TABS</h3><ul><li><b>Fleet</b>: buy vehicles that earn on their own, level them, and buy automation.</li><li><b>Routes</b>: multiply fleet income. Each needs lifetime distance and a one-time payment, and is re-bought after Dawnbreak.</li><li><b>Garage</b>: upgrade your own car.</li><li><b>Timeline</b>: switch eras, and perform Dawnbreak.</li></ul>
-<h3>DAWNBREAK</h3><p>At 25,000 km you can reset credits, upgrades, fleet, routes and offline upgrades for Cassette Tapes. Spend tapes on permanent upgrades. Timelines, tapes, fragments and stats are kept.</p>
+<h3>DAWNBREAK</h3><p>At 25,000 km you can reset credits, upgrades, fleet, routes and offline upgrades for Cassette Tapes. Spend tapes on permanent upgrades. Tape Echo keeps a floor of offline earnings through every reset. Timelines, tapes, fragments and stats are kept.</p>
 <h3>OFFLINE &amp; SAVING</h3><p>The game saves every 10s and when you leave. While away you earn at your Offline Rate (starts at 5%, upgradeable to 100%) for up to your Offline Cap (starts at 1 hour, upgradeable to 24 hours). Upgrade both in the Fleet tab. Hover or tap any top-bar icon for a tooltip. Settings has Export and Import for backing up your save.</p>`+'</div>'
   +modalBtns([{label:'BACK',fn:openSettings},{label:'CLOSE',cls:'buy',fn:closeModal}]));
 }
