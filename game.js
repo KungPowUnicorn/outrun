@@ -14,22 +14,28 @@ const CONFIG = {
 };
 const MILESTONES = [100,500,1000,2500,5000,10000,25000,50000,100000,250000,500000,1000000,2500000,5000000,10000000];
 const GARAGE = [
-  {id:'turbo',   name:'Turbo Engine',    icon:'gauge',   base:60,  growth:1.18, max:60, color:'#FF784F', desc:'+2 km/s base speed per level.',            eff:l=>(10+2*l)+' km/s base'},
+  {id:'turbo',   name:'Turbo Engine',    icon:'gauge',   base:250,  growth:1.18, max:60, color:'#FF784F', desc:'+1.2 km/s base speed per level.',            eff:l=>(ECON.baseSpd+ECON.turbo*l).toFixed(1)+' km/s base'},
   {id:'tires',   name:'Synthwave Tires', icon:'tires',   base:90,  growth:1.16, max:30, color:'#42DCE5', desc:'Faster, smoother lane changes.',           eff:l=>(3.2*(1+0.08*l)).toFixed(1)+' lanes/s'},
   {id:'gps',     name:'Holographic GPS', icon:'gps',     base:120, growth:1.17, max:40, color:'#7554D9', desc:'+15% package & delivery payout per level.',eff:l=>'x'+(1+0.15*l).toFixed(2)+' payouts'},
   {id:'cassette',name:'Cassette AI',     icon:'tape',    base:180, growth:1.19, max:50, color:'#E34FB9', desc:'+10% all income per level.',               eff:l=>'x'+(1+0.10*l).toFixed(2)+' income'},
   {id:'solar',   name:'Solar Panels',    icon:'sun',     base:150, growth:1.18, max:30, color:'#F9D68A', desc:'+3% income, softer collision penalties.',  eff:l=>'x'+(1+0.03*l).toFixed(2)+' income'},
-  {id:'gearbox', name:'Quantum Gearbox', icon:'gear',    base:260, growth:1.20, max:40, color:'#42DCE5', desc:'+8% speed multiplier per level.',          eff:l=>'x'+(1+0.08*l).toFixed(2)+' speed'},
+  {id:'gearbox', name:'Quantum Gearbox', icon:'gear',    base:2000, growth:1.20, max:40, color:'#42DCE5', desc:'+5% speed multiplier per level.',          eff:l=>'x'+(1+ECON.gear*l).toFixed(2)+' speed'},
   {id:'chrome',  name:'Chrome Exhaust',  icon:'exhaust', base:260, growth:1.20, max:25, color:'#FF784F', desc:'+10% reputation gained per level.',        eff:l=>'x'+(1+0.10*l).toFixed(2)+' rep'},
   {id:'nos',     name:'NOS Booster',     icon:'bolt',    base:340, growth:1.22, max:20, color:'#E34FB9', desc:'+0.5x Overdrive multiplier per level.',    eff:l=>'x'+(5+0.5*l).toFixed(1)+' overdrive'},
+  {id:'magnet',   name:'Package Magnet',      icon:'box',     base:400,  growth:1.20, max:20, color:'#42DCE5', desc:'+12% pickup magnet radius per level.',          eff:l=>'+'+(12*l)+'% radius'},
+  {id:'bumper',   name:'Reinforced Bumper',   icon:'wheel',   base:500,  growth:1.21, max:20, color:'#FF784F', desc:'Collisions slow you down less (and for less time).', eff:l=>'crash speed x'+Math.min(.9,0.45+0.02*l).toFixed(2)},
+  {id:'capacitor',name:'Overdrive Capacitor', icon:'atom',    base:900,  growth:1.22, max:15, color:'#E34FB9', desc:'+10% Overdrive duration per level.',            eff:l=>'x'+(1+0.1*l).toFixed(2)+' duration'},
+  {id:'dynamo',   name:'Charge Dynamo',       icon:'chip',    base:700,  growth:1.22, max:20, color:'#7554D9', desc:'+8% Overdrive charge rate per level.',          eff:l=>'x'+(1+0.08*l).toFixed(2)+' charge'},
+  {id:'racks',    name:'Cargo Racks',         icon:'route',   base:600,  growth:1.21, max:20, color:'#F9D68A', desc:'Deliveries arrive 3% sooner per level.',         eff:l=>(CONFIG.deliveryInterval*Math.pow(.97,l)).toFixed(1)+'s per delivery'},
+  {id:'cells',    name:'Nitro Cells',         icon:'bolt',    base:800,  growth:1.23, max:15, color:'#42DCE5', desc:'+1 extra Overdrive charge from every Energy Cell per level.', eff:l=>'+'+(8+l)+' per cell'},
 ];
 const FLEET = [
   {id:'coupe',       name:'Retro Coupe',       icon:'v_coupe', cost:500,    income:2,   tag:'BALANCED'},
-  {id:'interceptor', name:'Turbo Interceptor', icon:'v_int',   cost:2500,   income:8,   tag:'SPEED'},
-  {id:'cruiser',     name:'Solar Cruiser',     icon:'v_cru',   cost:10000,  income:25,  tag:'EFFICIENCY'},
-  {id:'hover',       name:'Hover Courier',     icon:'v_hov',   cost:50000,  income:100, tag:'URBAN'},
-  {id:'hauler',      name:'Heavy Hauler',      icon:'v_hau',   cost:250000, income:450, tag:'BULK'},
-  {id:'phantom',     name:'Maglev Phantom',    icon:'v_pha',   cost:1500000,income:2800,tag:'STEALTH'},
+  {id:'interceptor', name:'Turbo Interceptor', icon:'v_int',   cost:6000,   income:8,   tag:'SPEED'},
+  {id:'cruiser',     name:'Solar Cruiser',     icon:'v_cru',   cost:80000,  income:25,  tag:'EFFICIENCY'},
+  {id:'hover',       name:'Hover Courier',     icon:'v_hov',   cost:1200000,  income:100, tag:'URBAN'},
+  {id:'hauler',      name:'Heavy Hauler',      icon:'v_hau',   cost:20000000, income:450, tag:'BULK'},
+  {id:'phantom',     name:'Maglev Phantom',    icon:'v_pha',   cost:400000000,income:2800,tag:'STEALTH'},
 ];
 const AUTO = [
   {id:'apilot',  name:'Basic Autopilot',    icon:'wheel',  base:2000,  growth:1,    max:1,  desc:'Automatically dodges traffic and chases packages. Toggle on the Drive screen.'},
@@ -38,27 +44,30 @@ const AUTO = [
   {id:'sorting', name:'Package Sorting',    icon:'box',    base:900,   growth:1.85, max:25, desc:'+10% package value and a wider pickup magnet per level.'},
   {id:'drones',  name:'Courier Drones',     icon:'drone',  base:5000,  growth:2.1,  max:30, desc:'+3 CR/s of drone income per level.'},
   {id:'qlogi',   name:'Quantum Logistics',  icon:'atom',   base:20000, growth:2.2,  max:25, desc:'+25% ALL income per level.'},
+  {id:'rails',   name:'Maglev Rails',       icon:'route',  base:15000,   growth:2.0,  max:15, desc:'+10% route multiplier per level.'},
+  {id:'beacon',  name:'Event Beacon',       icon:'compass',base:8000,    growth:1.9,  max:10, desc:'Events appear 8% sooner and pay 10% more per level.'},
+  {id:'overclock',name:'Quantum Overclock', icon:'atom',   base:1500000, growth:2.4,  max:15, desc:'+10% all income and +3% speed per level.'},
 ];
 // Each route needs lifetime distance (req) AND a one-time payment (cost). Purchases reset on Dawnbreak. Add more by appending here.
 const ROUTES = [
-  {id:'coastal', name:'Coastal Circuit', mult:1.0, req:0, cost:0, desc:'Sun-bleached shoreline runs. Where it all began.'},
-  {id:'desert', name:'Desert Express', mult:1.35, req:5000, cost:6000, desc:'Long flat straights across the neon dunes.'},
-  {id:'loop', name:'Neon Loop', mult:1.8, req:25000, cost:45000, desc:'The city ring road, glowing end to end.'},
-  {id:'midnight', name:'Midnight Freeway', mult:2.4, req:60000, cost:300000, desc:'Six lanes of chrome and static.'},
-  {id:'ridge', name:'Static Ridge', mult:3.2, req:120000, cost:2000000, desc:'A mountain pass above the cloud deck.'},
-  {id:'horizon', name:'Event Horizon', mult:4.5, req:300000, cost:15000000, desc:'The road stops pretending to be real.'},
-  {id:'meridian', name:'Palm Meridian', mult:6, req:500000, cost:100000000, desc:'A tree-lined line straight through the sunset.'},
-  {id:'chromecanyon', name:'Chrome Canyon', mult:8, req:800000, cost:750000000, desc:'Mirror-polished walls and echoing engines.'},
-  {id:'laserharbor', name:'Laser Harbor', mult:11, req:1200000, cost:5500000000, desc:'Container cranes lit like a stage show.'},
-  {id:'spiral', name:'Skyline Spiral', mult:15, req:2000000, cost:40000000000, desc:'A ramp that only goes up.'},
-  {id:'sunken', name:'Sunken Boulevard', mult:20, req:3200000, cost:300000000000, desc:'The old downtown, flooded and glowing.'},
-  {id:'archipelago', name:'Arcade Archipelago', mult:27, req:5000000, cost:2200000000000, desc:'Causeways between islands of blinking cabinets.'},
-  {id:'glitch', name:'Glitch Turnpike', mult:36, req:8000000, cost:16000000000000, desc:'Toll booths that charge you yesterday.'},
-  {id:'ghost', name:'Ghost Interstate', mult:48, req:12000000, cost:120000000000000, desc:'Lanes full of cars that are not there.'},
-  {id:'aurora', name:'Aurora Transit', mult:65, req:20000000, cost:900000000000000, desc:'Polar lights over an empty six-lane.'},
-  {id:'quantum', name:'Quantum Causeway', mult:88, req:32000000, cost:7000000000000000, desc:'Every exit leads somewhere you already are.'},
-  {id:'hiss', name:'Tape Hiss Tunnel', mult:120, req:50000000, cost:55000000000000000, desc:'A tunnel built from rewound static.'},
-  {id:'lastsun', name:'Last Sunset Route', mult:165, req:80000000, cost:400000000000000000, desc:'The road that ends exactly at dusk.'}
+  {id:'coastal', name:'Coastal Circuit', mult:1, req:0, cost:0, desc:'Sun-bleached shoreline runs. Where it all began.'},
+  {id:'desert', name:'Desert Express', mult:1.25, req:30000, cost:6000, desc:'Long flat straights across the neon dunes.'},
+  {id:'loop', name:'Neon Loop', mult:1.6, req:90000, cost:45000, desc:'The city ring road, glowing end to end.'},
+  {id:'midnight', name:'Midnight Freeway', mult:2, req:250000, cost:300000, desc:'Six lanes of chrome and static.'},
+  {id:'ridge', name:'Static Ridge', mult:2.5, req:700000, cost:2000000, desc:'A mountain pass above the cloud deck.'},
+  {id:'horizon', name:'Event Horizon', mult:3.2, req:2000000, cost:15000000, desc:'The road stops pretending to be real.'},
+  {id:'meridian', name:'Palm Meridian', mult:4, req:4500000, cost:100000000, desc:'A tree-lined line straight through the sunset.'},
+  {id:'chromecanyon', name:'Chrome Canyon', mult:5, req:9000000, cost:750000000, desc:'Mirror-polished walls and echoing engines.'},
+  {id:'laserharbor', name:'Laser Harbor', mult:6.5, req:17000000, cost:5500000000, desc:'Container cranes lit like a stage show.'},
+  {id:'spiral', name:'Skyline Spiral', mult:8, req:27000000, cost:40000000000, desc:'A ramp that only goes up.'},
+  {id:'sunken', name:'Sunken Boulevard', mult:10, req:45000000, cost:300000000000, desc:'The old downtown, flooded and glowing.'},
+  {id:'archipelago', name:'Arcade Archipelago', mult:12.5, req:70000000, cost:2200000000000, desc:'Causeways between islands of blinking cabinets.'},
+  {id:'glitch', name:'Glitch Turnpike', mult:15, req:95000000, cost:16000000000000, desc:'Toll booths that charge you yesterday.'},
+  {id:'ghost', name:'Ghost Interstate', mult:19, req:130000000, cost:120000000000000, desc:'Lanes full of cars that are not there.'},
+  {id:'aurora', name:'Aurora Transit', mult:23, req:170000000, cost:900000000000000, desc:'Polar lights over an empty six-lane.'},
+  {id:'quantum', name:'Quantum Causeway', mult:28, req:220000000, cost:7000000000000000, desc:'Every exit leads somewhere you already are.'},
+  {id:'hiss', name:'Tape Hiss Tunnel', mult:34, req:300000000, cost:55000000000000000, desc:'A tunnel built from rewound static.'},
+  {id:'lastsun', name:'Last Sunset Route', mult:40, req:400000000, cost:400000000000000000, desc:'The road that ends exactly at dusk.'}
 ];
 const TIMELINES = {
   t1984:{id:'t1984', name:'1984 · NEON DESERT', short:'1984', unlock:0, mult:1, env:'desert',
@@ -66,7 +75,7 @@ const TIMELINES = {
     ground:'#140f26', grid:'rgba(117,84,217,', edge:'#e34fb9', edge2:'#42dce5', dash:'#f9d68a',
     roadA:'#261b42', roadB:'#211639', ridge:'#1a1231',
     desc:'Where the company was born. Chrome, dusk and palm shadows.'},
-  t1989:{id:'t1989', name:'1989 · NEON CITY', short:'1989', unlock:100000, mult:1.5, env:'city',
+  t1989:{id:'t1989', name:'1989 · NEON CITY', short:'1989', unlock:50000, mult:1.5, env:'city',
     sky:['#0b081c','#1c1245','#0e4a5e'], glow:'rgba(66,220,229,', sun:['#eafffb','#7df3ef','#42dce5'],
     ground:'#0d0a1e', grid:'rgba(227,79,185,', edge:'#42dce5', edge2:'#e34fb9', dash:'#bffcff',
     roadA:'#141741', roadB:'#111336', ridge:'#120e28',
@@ -74,15 +83,36 @@ const TIMELINES = {
   // ADD A NEW TIMELINE: copy the block below, give it a new id/unlock/mult/env, then add a SCENE_STAGES entry with the same id
   // and remove its name from FUTURE_TL. Unlock modal, Timeline tab, saves, missions and stats pick it up automatically.
   // Optional gameplay fields: grip (lane-change speed multiplier), pkg (package payout multiplier), mod (text shown in the UI), words (billboard text).
-  t1997:{id:'t1997', name:'1997 · CYBERPUNK STREETS', short:'1997', unlock:1000000, mult:2.5, env:'cyber', grip:0.9, pkg:1.25,
+  t1997:{id:'t1997', name:'1997 · CYBERPUNK STREETS', short:'1997', unlock:300000, mult:2.2, env:'cyber', grip:0.9, pkg:1.25,
     mod:'slick streets: lane changes 10% slower, packages pay 25% more',
     words:['NEURO','CYBER','DATA','HOLO','RAMEN','CHROME','SYNTH','NO-FLY','ZAIBATSU','DECK','GLITCH','VIRUS','MEGACORP','NEON','24H','BIOS','PACHINKO','CREDITS'],
     sky:['#05060f','#0f1a3a','#7a1670'], glow:'rgba(255,43,214,', sun:['#fff0fb','#ff2bd6','#6a1bff'],
     ground:'#05070d', grid:'rgba(57,255,156,', edge:'#ff2bd6', edge2:'#39ff9c', dash:'#e8fff4',
     roadA:'#0d1226', roadB:'#0a0f1f', ridge:'#0b0f24',
     desc:'Rain, steel and static. Everyone is a courier now.'},
+  t2025:{id:'t2025', name:'2025 · CORPORATE MEGACITY', short:'2025', unlock:1500000, mult:3.2, env:'corp', pkg:1.5, traffic:1.3,
+    mod:'rush hour: traffic 30% denser, packages pay 50% more',
+    words:['MEGACORP','SYNERGY','CLOUD','PRIME','LOGIN','ESG','NASDAQ','Q4','UNICORN','STREAM','DRONES','SMART','AGILE','LEAN','PIVOT'],
+    sky:['#081226','#17325f','#6fa8ff'], glow:'rgba(77,214,255,', sun:['#ffffff','#bfe3ff','#4da3ff'],
+    ground:'#070d1a', grid:'rgba(77,214,255,', edge:'#4dd6ff', edge2:'#ffd166', dash:'#ffffff',
+    roadA:'#10213c', roadB:'#0c1a31', ridge:'#0e1c36',
+    desc:'Glass towers, ad drones and a toll for everything.'},
+  t2088:{id:'t2088', name:'2088 · QUANTUM HIGHWAY', short:'2088', unlock:8000000, mult:4.6, env:'quantum', grip:1.25, odDur:1.25,
+    mod:'low gravity: lane changes 25% faster, Overdrive lasts 25% longer',
+    words:['PHASE','QUBIT','VOID','ORBIT','FLUX','NULL','ECHO','DELTA','AXION','LATTICE','SPIN','WAVE'],
+    sky:['#02010a','#0a0a3a','#3a0a7a'], glow:'rgba(143,107,255,', sun:['#e8fff9','#00ffd5','#8f6bff'],
+    ground:'#03020c', grid:'rgba(0,255,213,', edge:'#8f6bff', edge2:'#00ffd5', dash:'#e9e4ff',
+    roadA:'#0e0a2c', roadB:'#0a0722', ridge:'#0a0830',
+    desc:'The road folds through space. Distance is a suggestion.'},
+  tvoid:{id:'tvoid', name:'??? · REALITY DISTORTION', short:'???', unlock:40000000, mult:6.5, env:'glitch', pkg:2, odCharge:0.7,
+    mod:'unstable physics: packages pay double, Overdrive charges 30% slower',
+    words:['ERROR','NULL','404','????','GLITCH','REDACTED','SEGFAULT','0xDEAD','LOOP','UNDEF','NaN','VOID'],
+    sky:['#0a0010','#32004a','#ff00aa'], glow:'rgba(255,0,170,', sun:['#ffffff','#ff00aa','#00fff0'],
+    ground:'#06000c', grid:'rgba(0,255,240,', edge:'#ff00aa', edge2:'#00fff0', dash:'#ffffff',
+    roadA:'#14001f', roadB:'#0e0016', ridge:'#12001c',
+    desc:'The map is wrong. The packages are right.'},
 };
-const FUTURE_TL = ['2025 · CORPORATE MEGACITY','2088 · QUANTUM HIGHWAY','??? · REALITY DISTORTION'];   // teasers for timelines not built yet
+const FUTURE_TL = [];   // names of timelines not built yet (shown as a teaser card)
 const PRESTIGE = [
   {id:'analog',   name:'Analog Memories',     icon:'tape',      max:10, costs:[1,2,4,7,11,16,22,29,37,46], desc:l=>'Start each run with '+fmt(startCreditsFor(l))+' CR'},
   {id:'odinf',    name:'Infinite Overdrive',  icon:'bolt',      max:5,  costs:[2,4,7,11,16],               desc:l=>'Overdrive '+(15+3*l)+'s, base x'+(5+0.5*l).toFixed(1)},
@@ -90,6 +120,12 @@ const PRESTIGE = [
   {id:'nav',      name:'Perfect Navigation',  icon:'compass',   max:10, costs:[1,2,4,6,9,12,16,20,25,30],  desc:l=>'+'+(12*l)+'% all income'},
   {id:'temporal', name:'Temporal Stability',  icon:'hourglass', max:5,  costs:[2,3,5,8,12],                desc:l=>'+'+(15*l)+'% Cassette Tapes from Dawnbreak'},
   {id:'echo',     name:'Tape Echo',           icon:'tape',      max:10, costs:[1,2,3,5,7,10,14,19,25,32],  desc:l=>'+'+(5*l)+'% offline rate and +'+(0.5*l)+'h offline cap, kept through Dawnbreak'},
+  {id:'headstart', name:'Head Start',   icon:'car',   max:5, costs:[3,5,8,12,18],             desc:l=>'Start each run with '+l+' free Retro Coupe'+(l===1?'':'s')},
+  {id:'harvest',   name:'Data Harvest', icon:'chip',  max:8, costs:[2,3,5,7,10,14,19,26],      desc:l=>'+'+(25*l)+'% Data Fragment bonus'},
+  {id:'luck',      name:'Lucky Charm',  icon:'star',  max:5, costs:[2,4,7,11,16],              desc:l=>'+'+(2*l)+'% chance a package is a rare Data Fragment'},
+  {id:'showtime',  name:'Showtime',     icon:'sun',   max:5, costs:[2,4,7,11,16],              desc:l=>'+'+(20*l)+'% event rewards'},
+  {id:'memory',    name:'Route Memory', icon:'route', max:8, costs:[3,5,8,12,17,23,30,38],      desc:l=>'Keep the first '+(1+2*l)+' routes through Dawnbreak'},
+  {id:'coldstart', name:'Cold Start',   icon:'gauge', max:5, costs:[3,5,8,12,18],              desc:l=>'Start each run with Turbo Engine Lv.'+(5*l)},
 ];
 function startCreditsFor(l){ return l<=0?0:Math.round(400*l*l); }
 const TPAL = [['#5a4f9f','#372e66'],['#9f4f86','#5e2e50'],['#3f8b8b','#255454'],['#8b7a3f','#544a25'],['#8b4f4f','#542e2e']];
@@ -111,9 +147,27 @@ const SCENE_STAGES={
     {id:'plaza',name:'CHROME PLAZA',env:'cyber',weather:'clear',sky:['#060812','#1a1040','#0f6a7a'],ground:'#070913',edge:'#39ff9c',edge2:'#ff2bd6',ridge:'#0e1230'},
     {id:'stack',name:'DATASTACK OVERPASS',env:'cyber',weather:'mist',sky:['#0a0614','#2a0f4a','#a3225e'],ground:'#0a0712',edge:'#ffe14d',edge2:'#27e8ff',ridge:'#16102c'},
     {id:'canal',name:'ACID CANAL',env:'coast',weather:'rain',sky:['#04100f','#0a3a3a','#2aa38c'],ground:'#04100f',edge:'#39ff9c',edge2:'#ff2bd6',ridge:'#0b2a2a'}
+  ],
+  t2025:[
+    {id:'glass',name:'GLASS DISTRICT',env:'corp',weather:'clear',sky:['#081226','#17325f','#6fa8ff'],ground:'#070d1a',edge:'#4dd6ff',edge2:'#ffd166',ridge:'#0e1c36'},
+    {id:'skylink',name:'SKYLINK LOOP',env:'corp',weather:'mist',sky:['#0a1030','#2a2a6a','#a98bff'],ground:'#080a1c',edge:'#a98bff',edge2:'#4dd6ff',ridge:'#14163a'},
+    {id:'harborx',name:'HARBOR EXCHANGE',env:'coast',weather:'clear',sky:['#06182a','#0f4a6a','#5fd0e0'],ground:'#06141f',edge:'#4dd6ff',edge2:'#ffffff',ridge:'#0b2c40'},
+    {id:'dataplaza',name:'DATA PLAZA',env:'corp',weather:'rain',sky:['#060a18','#102040','#3a8fd0'],ground:'#050912',edge:'#ffd166',edge2:'#4dd6ff',ridge:'#0c1630'}
+  ],
+  t2088:[
+    {id:'spire',name:'ORBITAL SPIRE',env:'quantum',weather:'clear',sky:['#02010a','#0a0a3a','#3a0a7a'],ground:'#03020c',edge:'#8f6bff',edge2:'#00ffd5',ridge:'#0a0830'},
+    {id:'phase',name:'PHASE TUNNEL',env:'quantum',weather:'mist',sky:['#01030a','#06204a','#0a6a8a'],ground:'#02050c',edge:'#00ffd5',edge2:'#8f6bff',ridge:'#06183a'},
+    {id:'canopy',name:'EVENT CANOPY',env:'quantum',weather:'clear',sky:['#06010a','#2a0a4a','#d04aa0'],ground:'#06020c',edge:'#ff7acb',edge2:'#00ffd5',ridge:'#1a0a30'},
+    {id:'rim',name:'SINGULARITY RIM',env:'quantum',weather:'dust',sky:['#000000','#12082a','#4a1a8a'],ground:'#020006',edge:'#ffffff',edge2:'#8f6bff',ridge:'#0c0620'}
+  ],
+  tvoid:[
+    {id:'static',name:'STATIC FIELD',env:'glitch',weather:'clear',sky:['#0a0010','#32004a','#ff00aa'],ground:'#06000c',edge:'#ff00aa',edge2:'#00fff0',ridge:'#12001c'},
+    {id:'rollback',name:'ROLLBACK STREET',env:'glitch',weather:'rain',sky:['#000a10','#003a4a','#00d0c0'],ground:'#00060a',edge:'#00fff0',edge2:'#ff00aa',ridge:'#00202a'},
+    {id:'nullsec',name:'NULL SECTOR',env:'glitch',weather:'mist',sky:['#050005','#2a002a','#aa00ff'],ground:'#040004',edge:'#aa00ff',edge2:'#ffee00',ridge:'#14001a'},
+    {id:'lastframe',name:'THE LAST FRAME',env:'glitch',weather:'clear',sky:['#000000','#101010','#ffffff'],ground:'#030303',edge:'#ffffff',edge2:'#ff0044',ridge:'#0a0a0a'}
   ]
 };
-const isCityEnv=e=>e==='city'||e==='cyber';
+const isCityEnv=e=>e==='city'||e==='cyber'||e==='corp'||e==='glitch';
 const COLOR_THEMES={
   ocean:{sky:['#061923','#0c4355','#167579'],ground:'#071a22',edge:'#42dec5',edge2:'#91f5ed',dash:'#d7fff4',grid:'rgba(66,220,197,',roadA:'#102830',roadB:'#0d232c',ridge:'#0b2933',sun:['#d9fff5','#56d9c4','#257da0'],glow:'rgba(66,220,197,'},
   arcade:{sky:['#16051f','#52206d','#ba3864'],ground:'#170d25',edge:'#ff4fd8',edge2:'#fff05e',dash:'#fff4a1',grid:'rgba(255,79,216,',roadA:'#291442',roadB:'#211236',ridge:'#251235',sun:['#fff68a','#ff9d40','#ff4fd8'],glow:'rgba(255,79,216,'},
@@ -135,7 +189,11 @@ function applyTOD(o){
   for(const k of ['glow','grid']) o[k]=pr(o[k],TOD_NIGHT[k],TOD_DAY[k]);
   o.day=f; return o;
 }
-function visualTimeline(t,raw){const base=TIMELINES[state.timeline]||TIMELINES.t1984,stage=sceneStage(t),theme=COLOR_THEMES[state.settings.palette];return (raw?{...base,...stage,...(theme||{}),env:stage.env,weather:stage.weather,regionName:stage.name,stageId:stage.id}:applyTOD({...base,...stage,...(theme||{}),env:stage.env,weather:stage.weather,regionName:stage.name,stageId:stage.id}));}
+function hueRot(h,deg){ const [r,g,b]=hex2rgb(h),a=deg*Math.PI/180,c=Math.cos(a),s=Math.sin(a);
+  const m=[[.213+c*.787-s*.213,.715-c*.715-s*.715,.072-c*.072+s*.928],[.213-c*.213+s*.143,.715+c*.285+s*.140,.072-c*.072-s*.283],[.213-c*.213-s*.787,.715-c*.715+s*.715,.072+c*.928+s*.072]];
+  return '#'+m.map(q=>Math.max(0,Math.min(255,Math.round(q[0]*r+q[1]*g+q[2]*b))).toString(16).padStart(2,'0')).join(''); }
+function visualTimeline(t,raw){ const o=visualTimeline0(t,raw); if(!raw&&o.id==='tvoid'){ const d=(sim.clock*24)%360; for(const k of ['edge','edge2','dash','ridge']) o[k]=hueRot(o[k],d); } return o; }
+function visualTimeline0(t,raw){const base=TIMELINES[state.timeline]||TIMELINES.t1984,stage=sceneStage(t),theme=COLOR_THEMES[state.settings.palette];return (raw?{...base,...stage,...(theme||{}),env:stage.env,weather:stage.weather,regionName:stage.name,stageId:stage.id}:applyTOD({...base,...stage,...(theme||{}),env:stage.env,weather:stage.weather,regionName:stage.name,stageId:stage.id}));}
 
 /* ---------------- UTIL ---------------- */
 const el = id => document.getElementById(id);
@@ -165,14 +223,14 @@ function defaultState(){
     version:1,
     credits:0, distance:0, lifetimeDistance:0, travel:0,
     deliveries:0, packages:0, reputation:0, fragments:0,
-    timeline:'t1984', unlocked:['t1984'],
+    timeline:'t1984', unlocked:['t1984'], eraSeen:{t1984:true},
     prestigeCount:0, tapes:0, tapesEarned:0, msIdx:0,
-    upgrades:{turbo:0,tires:0,gps:0,cassette:0,solar:0,gearbox:0,chrome:0,nos:0},
+    upgrades:{turbo:0,tires:0,gps:0,cassette:0,solar:0,gearbox:0,chrome:0,nos:0,magnet:0,bumper:0,capacitor:0,dynamo:0,racks:0,cells:0},
     fleet:{coupe:0,interceptor:0,cruiser:0,hover:0,hauler:0,phantom:0},
     fleetLv:{coupe:0,interceptor:0,cruiser:0,hover:0,hauler:0,phantom:0},
-    route:'coastal', routesOwned:{coastal:true}, offUp:{rate:0,cap:0},
-    auto:{apilot:0,aod:0,synth:0,sorting:0,drones:0,qlogi:0},
-    prestige:{analog:0,odinf:0,workforce:0,nav:0,temporal:0,echo:0},
+    route:'coastal', routesOwned:{coastal:true}, ach:{}, livery:'auto', daily:{date:'',tasks:[],streak:0,last:''}, offUp:{rate:0,cap:0},
+    auto:{apilot:0,aod:0,synth:0,sorting:0,drones:0,qlogi:0,rails:0,beacon:0,overclock:0},
+    prestige:{analog:0,odinf:0,workforce:0,nav:0,temporal:0,echo:0,headstart:0,harvest:0,luck:0,showtime:0,memory:0,coldstart:0},
     settings:{master:0.8, music:0.55, sfx:0.8, engine:0.65, muted:false,
       reduced: window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches,
       pauseMenus:false, pauseBackground:false, highContrast:false, reduceFlashes:false, speedStreaks:true, scanlines:true, glowEffects:true, uiScale:1, controls:'swipe', palette:'sunset', dayNight:true, track:'auto', trackMinutes:3, pickupGuides:true},
@@ -191,6 +249,8 @@ function sanitize(d){
   }
   if(typeof d.timeline==='string' && TIMELINES[d.timeline]) s.timeline=d.timeline;
   if(Array.isArray(d.unlocked)) d.unlocked.forEach(t=>{ if(TIMELINES[t] && !s.unlocked.includes(t)) s.unlocked.push(t); });
+  if(d.eraSeen&&typeof d.eraSeen==='object'){ for(const k in d.eraSeen) if(TIMELINES[k]&&d.eraSeen[k]===true) s.eraSeen[k]=true; }
+  for(const k of s.unlocked) s.eraSeen[k]=true;
   for(const [key,src] of [['upgrades',GARAGE],['fleet',FLEET],['fleetLv',FLEET],['auto',AUTO],['prestige',PRESTIGE],['settings',null],['stats',null]]){
     if(d[key] && typeof d[key]==='object'){
       for(const k2 in s[key]){ const v=num(d[key][k2]); if(v!==null) s[key][k2]=Math.min(v, src? src.find? (src.find(x=>x.id===k2)||{max:1e9}).max||1e9 : 1e9 : 1e9); }
@@ -202,13 +262,18 @@ function sanitize(d){
     else { const v=num(d.settings[k2]); if(v!==null) s.settings[k2]=clamp(v,0,1); }
   }
   for(const key of ['upgrades','fleet','fleetLv','auto','prestige']) for(const k in s[key]) s[key][k]=Math.floor(s[key][k]);
-  for(const k in s.fleetLv) s.fleetLv[k]=Math.min(100,s.fleetLv[k]);
+  for(const k in s.fleetLv) s.fleetLv[k]=Math.min(ECON.flvCap,s.fleetLv[k]);
   for(const k in s.fleet) s.fleet[k]=Math.min(1e6,s.fleet[k]);
   if(typeof d.route==='string'&&ROUTES.some(r=>r.id===d.route)) s.route=d.route;   // (the selected route was never being restored before)
   { const ro={coastal:true};
     if(d.routesOwned&&typeof d.routesOwned==='object'){ for(const r of ROUTES) if(d.routesOwned[r.id]===true) ro[r.id]=true; }
     else for(const r of ROUTES) if(s.lifetimeDistance>=r.req) ro[r.id]=true;           // older saves: grandfather routes already unlocked
     s.routesOwned=ro; if(!ro[s.route]) s.route='coastal'; }
+  if(d.ach&&typeof d.ach==='object'){ for(const k in d.ach) if(ACH.some(a=>a.id===k)&&d.ach[k]===true) s.ach[k]=true; }
+  if(typeof d.livery==='string'&&(d.livery==='auto'||LIVERIES.some(l=>l.id===d.livery))) s.livery=d.livery;
+  if(d.daily&&typeof d.daily==='object'){ const D=d.daily, ok=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x);
+    if(ok(D.date)) s.daily.date=D.date; if(ok(D.last)) s.daily.last=D.last; const st=Number(D.streak); if(isFinite(st)&&st>=0) s.daily.streak=Math.min(9999,Math.floor(st));
+    if(Array.isArray(D.tasks)) s.daily.tasks=D.tasks.filter(t=>t&&DAILY_POOL.some(p=>p.id===t.id)&&isFinite(t.goal)&&t.goal>0&&isFinite(t.base)).slice(0,3).map(t=>({id:t.id,goal:Math.floor(t.goal),base:Number(t.base),claimed:t.claimed===true})); }
   s.tod=s.tod%1;
   if(d.offUp&&typeof d.offUp==='object'){ s.offUp.rate=clamp(Math.floor(+d.offUp.rate)||0,0,19); s.offUp.cap=clamp(Math.floor(+d.offUp.cap)||0,0,46); }
   if(d.settings){
@@ -271,15 +336,28 @@ function openTour(step=0){
 }
 
 /* ---------------- ECONOMY ---------------- */
-function upgradeCost(u){ return Math.ceil(u.base*Math.pow(u.growth, state.upgrades[u.id])); }
-function fleetCost(v){ return Math.ceil(v.cost*Math.pow(1.35, state.fleet[v.id])); }
-function fleetLvCost(v){ return Math.ceil(v.cost*3*Math.pow(1.6, state.fleetLv[v.id])); }
-function autoCost(a){ return Math.ceil(a.base*Math.pow(a.growth, state.auto[a.id])); }
+// ---- economy tuning knobs (all costs and growth rates live here) ----
+const ECON={ fleetK:1, fleetGrow:1.25, flvK:5, flvGrow:1.6, flvMul:1.08, flvCap:40, garageK:1, garageGrowAdd:0.05, autoK:1, autoGrowAdd:0.18, routeK:0.15,
+  baseSpd:8, mulPow:0.6, idxI0:20, idxQ:1.2, turbo:1.2, gear:0.05, ocSpd:0.03, offRateBase:1000, offRateGrow:1.45, offCapBase:800, offCapGrow:1.14 };
+// Price index: every credit price scales with your sustained income (not Overdrive/event boosts), so growth stays polynomial instead of exploding.
+// Permanent boosts (era, achievements, tapes, rep, fragments) are excluded from the index, so they genuinely speed you up.
+function permMul(){ const p=state.prestige, tl=TIMELINES[state.timeline]; return Math.pow((1+0.12*p.nav)*(1+0.005*Math.floor(state.reputation))*(1+0.01*Math.floor(state.fragments)*(1+0.25*p.harvest))*(1+0.005*achCount())*tl.mult,ECON.mulPow); }
+const priceIdx=()=>ECON.idxQ?Math.pow(1+(cachedParts.base||1)/permMul()/ECON.idxI0,ECON.idxQ):1;
+const fleetAt=(v,l)=>Math.ceil(v.cost*ECON.fleetK*priceIdx()*Math.pow(ECON.fleetGrow,l));
+const flvAt=(v,l)=>Math.ceil(v.cost*ECON.flvK*priceIdx()*Math.pow(ECON.flvGrow,l));
+const garageAt=(u,l)=>Math.ceil(u.base*ECON.garageK*priceIdx()*Math.pow(u.growth+ECON.garageGrowAdd,l));
+const autoAt=(a,l)=>Math.ceil(a.base*ECON.autoK*priceIdx()*Math.pow(a.growth+ECON.autoGrowAdd,l));
+const flvMulAt=l=>Math.pow(ECON.flvMul,l);
+const rc=r=>Math.round(r.cost*ECON.routeK*priceIdx());
+function upgradeCost(u){ return garageAt(u,state.upgrades[u.id]); }
+function fleetCost(v){ return fleetAt(v,state.fleet[v.id]); }
+function fleetLvCost(v){ return flvAt(v,state.fleetLv[v.id]); }
+function autoCost(a){ return autoAt(a,state.auto[a.id]); }
 function prestigeCost(p){ const l=state.prestige[p.id]; return l>=p.max?Infinity:p.costs[l]; }
 function offEff(){ return Math.min(1,0.05*(1+state.offUp.rate+state.prestige.echo)); }
 function offCapS(){ return Math.min(86400,3600+1800*(state.offUp.cap+state.prestige.echo)); }
-function offCost(k){ return Math.ceil((k==='rate'?1000:800)*Math.pow(k==='rate'?1.45:1.14,state.offUp[k])); }
-function routeMult(){ return (ROUTES.find(r=>r.id===state.route)||ROUTES[0]).mult; }
+function offCost(k){ return Math.ceil((k==='rate'?ECON.offRateBase:ECON.offCapBase)*priceIdx()*Math.pow(k==='rate'?ECON.offRateGrow:ECON.offCapGrow,state.offUp[k])); }
+function routeMult(){ return (ROUTES.find(r=>r.id===state.route)||ROUTES[0]).mult*(1+0.1*state.auto.rails); }
 let buyMode='1'; const sortMode={fleet:'recommended',garage:'recommended'};
 function purchaseQuote(costAt, level, cap){
   const remaining=Math.max(0,cap-level), wanted=buyMode==='max'?5000:Math.max(1,+buyMode||1);
@@ -294,30 +372,38 @@ function purchaseQuote(costAt, level, cap){
 }
 function qtyTools(){return '<div class="qty-tools" role="group" aria-label="Purchase quantity"><span>BUY QUANTITY</span>'+[['1','1'],['10','10'],['max','MAX']].map(([v,t])=>'<button type="button" data-qty="'+v+'" class="'+(buyMode===v?'selected':'')+'" aria-pressed="'+(buyMode===v)+'">'+t+'</button>').join('')+'</div>';}
 
-function calcIncomeParts(){
+// All upgrade multipliers are combined, then compressed with ECON.mulPow so late-game stacking cannot run away.
+function commonMul(){
   const u=state.upgrades, a=state.auto, p=state.prestige, tl=TIMELINES[state.timeline];
-  const common = (1+0.10*u.cassette)*(1+0.03*u.solar)*(1+0.12*p.nav)*(1+0.25*a.qlogi)
-    *(1+0.005*Math.floor(state.reputation))*(1+0.01*Math.floor(state.fragments))*tl.mult;
+  const m=(1+0.10*u.cassette)*(1+0.03*u.solar)*(1+0.12*p.nav)*(1+0.25*a.qlogi)
+    *(1+0.005*Math.floor(state.reputation))*(1+0.01*Math.floor(state.fragments)*(1+0.25*p.harvest))*(1+0.1*a.overclock)*(1+0.005*achCount())*tl.mult;
+  return Math.pow(m,ECON.mulPow);
+}
+function fleetMul(){ return Math.pow((1+0.20*state.auto.synth)*(1+0.25*state.prestige.workforce)*routeMult(),ECON.mulPow); }
+function calcIncomeParts(){
+  const common=commonMul();
   const player = CONFIG.baseIncome*common;
   let fleetRaw=0;
-  for(const v of FLEET) fleetRaw += state.fleet[v.id]*v.income*Math.pow(1.25, state.fleetLv[v.id]);
-  const fleet = fleetRaw*(1+0.20*a.synth)*(1+0.25*p.workforce)*routeMult()*common;
-  const drones = 3*a.drones*common;
+  for(const v of FLEET) fleetRaw += state.fleet[v.id]*v.income*flvMulAt(state.fleetLv[v.id]);
+  const fleet = fleetRaw*fleetMul()*common;
+  const drones = 3*state.auto.drones*common;
   return {player, fleet, drones, base:player+fleet+drones};
 }
 function boostMult(){ let m=1; for(const b of sim.boosts) m*=b.mult; return m; }
 function odMult(){ return CONFIG.od.baseMult + 0.5*state.upgrades.nos + 0.5*state.prestige.odinf; }
-function odDuration(){ return CONFIG.od.duration + 3*state.prestige.odinf; }
+function odDuration(){ return (CONFIG.od.duration + 3*state.prestige.odinf)*(TIMELINES[state.timeline].odDur||1)*(1+0.1*state.upgrades.capacitor); }
 function calcIncome(){ return cachedParts.base*boostMult()*(sim.od.active?odMult():1); }
+function spdMul(){ return (1+ECON.gear*state.upgrades.gearbox)*(1+ECON.ocSpd*state.auto.overclock); }
+function delivInt(){ return CONFIG.deliveryInterval*Math.pow(.97,state.upgrades.racks); }
 function calcSpeed(){
-  let s=(10+2*state.upgrades.turbo)*(1+0.08*state.upgrades.gearbox);
+  let s=(ECON.baseSpd+ECON.turbo*state.upgrades.turbo)*spdMul();
   if(sim.od.active) s*=1.5;
   for(const b of sim.boosts) if(b.speed) s*=b.speed;
-  if(sim.collisionT>0) s*=0.45;
+  if(sim.collisionT>0) s*=Math.min(.9,0.45+0.02*state.upgrades.bumper);
   return s;
 }
 function calcSpeedPure(){
-  return (10+2*state.upgrades.turbo)*(1+0.08*state.upgrades.gearbox);
+  return (ECON.baseSpd+ECON.turbo*state.upgrades.turbo)*spdMul();
 }
 function visSpeed(){ return 70+Math.min(cachedSpeed*1.6,450)+(sim.od.active?50:0); }
 function gpsMult(){ return (1+0.15*state.upgrades.gps)*(1+0.10*state.auto.sorting)*(TIMELINES[state.timeline].pkg||1); }
@@ -481,23 +567,27 @@ function worldToScreen(z,wx){ return {x:R.sxAt(z,wx), y:R.sy(z), s:R.f/z}; }
 
 /* ---------------- GAMEPLAY EVENTS ---------------- */
 function eventBeat(id,phase,detail=''){
-  const box=el('eventTransition'),icons={diner:'✦',rival:'◆',police:'⚠'},names={diner:'NEON DINER',rival:'RIVAL RACER',police:'POLICE PURSUIT'};
+  const box=el('eventTransition'),icons={diner:'✦',rival:'◆',police:'⚠',convoy:'▣',blackout:'☾'},names={diner:'NEON DINER',rival:'RIVAL RACER',police:'POLICE PURSUIT',convoy:'PACKAGE CONVOY',blackout:'BLACKOUT'};
   if(!box)return;box.className='event-transition '+(phase==='start'?'start':'result')+' event-'+id+(phase==='failed'?' failed':'');
   el('eventTransitionIcon').textContent=icons[id]||'✦';
-  const titles=phase==='start'?{diner:'PIT STOP AHEAD',rival:'CHALLENGER DETECTED',police:'PURSUIT ENGAGED'}:{success:'EVENT CLEARED',failed:'EVENT FAILED',reward:'PIT STOP REWARD'};
+  const titles=phase==='start'?{diner:'PIT STOP AHEAD',rival:'CHALLENGER DETECTED',police:'PURSUIT ENGAGED',convoy:'CONVOY INBOUND',blackout:'GRID FAILURE'}:{success:'EVENT CLEARED',failed:'EVENT FAILED',reward:'PIT STOP REWARD'};
   el('eventTransitionTitle').textContent=titles[phase]||names[id]||'EVENT';
-  el('eventTransitionText').textContent=detail||({diner:'Find the glowing diner on the roadside.',rival:'Hold your nerve. Make it through clean.',police:'Keep clear of traffic until the sirens fade.'}[id]||'');
+  el('eventTransitionText').textContent=detail||({diner:'Find the glowing diner on the roadside.',rival:'Hold your nerve. Make it through clean.',police:'Keep clear of traffic until the sirens fade.',convoy:'Grab every crate you can before the convoy passes.',blackout:'The grid is down. Drive by headlight. Income doubled.'}[id]||'');
   clearTimeout(box._hideTimer);requestAnimationFrame(()=>box.classList.add('show'));
   box._hideTimer=setTimeout(()=>box.classList.remove('show'),phase==='start'?1900:1500);
 }
 function startEvent(){
-  const id=pick(['diner','diner','rival','rival','police']);
+  const id=pick(['diner','diner','rival','rival','police','convoy','blackout']);
   if(id==='diner'){
     sim.scenery.push({type:'diner', abs:sim.travel+1300, side:1, off:14, seed:Math.random(), used:false});
     sim.ev={id, t:70, dur:70};
   } else if(id==='rival'){
     sim.ev={id, t:30, dur:30};
-    sim.rival={z:420, lane:1, laneF:0, laneT:1.5, tgt:170, flee:false};
+    sim.rival={z:420, lane:1, laneF:0, laneT:1.5, tgt:170, flee:false, crashT:0, crashes:0, skill:rand(.6,.85), dead:false};
+  } else if(id==='convoy'){
+    sim.ev={id, t:20, dur:20, got:0, waveT:0};
+  } else if(id==='blackout'){
+    sim.ev={id, t:20, dur:20}; sim.boosts.push({name:'BLACKOUT BONUS', mult:2, t:20});
   } else {
     sim.ev={id:'police', t:25, dur:25};
     sim.policeCar={z:610,laneF:0};
@@ -505,24 +595,43 @@ function startEvent(){
   }
   AudioSys.sfx('notify');
   el('eventBanner').classList.remove('hidden');
-  el('eventBanner').classList.remove('event-diner','event-rival','event-police'); el('eventBanner').classList.add('event-'+id);
-  el('evIcon').textContent=id==='police'?'⚠':id==='rival'?'◆':'✦';
+  el('eventBanner').classList.remove('event-diner','event-rival','event-police','event-convoy','event-blackout'); el('eventBanner').classList.add('event-'+id);
+  el('evIcon').textContent=({police:'⚠',rival:'◆',convoy:'▣',blackout:'☾'})[id]||'✦';
   eventBeat(id,'start');
 }
 function endEvent(){
-  sim.ev=null; sim.evCd=rand(75,120);
+  sim.ev=null; sim.evCd=rand(75,120)*Math.pow(.92,state.auto.beacon||0);
   sim.policeCar=null;
   el('eventBanner').classList.add('hidden');
-  el('eventBanner').classList.remove('event-diner','event-rival','event-police');
+  el('eventBanner').classList.remove('event-diner','event-rival','event-police','event-convoy','event-blackout');
   if(sim.rival){ sim.rival.flee=true; sim.rival.tgt=2400; }
+}
+function evMult(){ return 1+0.2*(state.prestige.showtime||0)+0.1*(state.auto.beacon||0); }
+// The rival now dodges traffic (not perfectly). Hitting a car spins it out and costs it 6s; a second crash wrecks it and ends the race early with a bigger bonus.
+function rivalCrash(i){
+  const r=sim.rival; if(!r) return;
+  r.crashes++; r.crashT=2.4; r.tgt=Math.max(75,r.z-85); sim.traffic.splice(i,1);
+  const sp=worldToScreen(Math.max(40,r.z),r.laneF);
+  emitBurst(sp.x,sp.y-sp.s*.6,'#ffb347',16); AudioSys.sfx('crash');
+  if(sim.ev&&sim.ev.id==='rival') sim.ev.t=Math.max(2,sim.ev.t-6);
+  if(r.crashes>=2) rivalWreck(); else floatText(sp.x,sp.y-sp.s*1.4,'RIVAL CRASHED  −6s','#ffb347');
+}
+function rivalWreck(){
+  if(!sim.ev||sim.ev.id!=='rival') return;
+  const cr=cachedParts.base*105*evMult(); state.credits+=cr; gainRep(8); sim.boosts.push({name:'RACER MOMENTUM',mult:1,speed:1.25,t:20});
+  floatText(R.W/2,R.H*.5,'RIVAL WRECKED +'+fmt(cr)+' CR','#FF784F'); emitBurst(R.W/2,R.H*.5,'#ff784f',18);
+  state.stats.eventsWon++; AudioSys.sfx('success'); eventBeat('rival','success','Rival wrecked in traffic · early finish bonus.'); toast('RIVAL WRECKED — early finish bonus','reward');
+  endEvent(); if(sim.rival){ sim.rival.flee=false; sim.rival.dead=true; sim.rival.tgt=20; sim.rival.crashT=9; }
 }
 function eventSuccess(){
   const eventId=sim.ev.id;
-  const inc=cachedParts.base;
+  const inc=cachedParts.base*evMult();
   if(sim.ev.id==='rival'){
     const cr=inc*70; state.credits+=cr; gainRep(6);
     sim.boosts.push({name:'RACER MOMENTUM', mult:1, speed:1.25, t:20});
     floatText(R.W/2,R.H*0.5,'RIVAL DEFEATED +'+fmt(cr)+' CR','#FF784F');
+  } else if(sim.ev.id==='convoy'){ const cr=inc*(25+sim.ev.got*8); state.credits+=cr; gainRep(4); floatText(R.W/2,R.H*0.5,'CONVOY: '+sim.ev.got+' CRATES +'+fmt(cr)+' CR','#42DCE5');
+  } else if(sim.ev.id==='blackout'){ const cr=inc*50; state.credits+=cr; gainRep(4); floatText(R.W/2,R.H*0.5,'POWER RESTORED +'+fmt(cr)+' CR','#F9D68A');
   } else {
     const cr=inc*90; state.credits+=cr; gainRep(10);
     floatText(R.W/2,R.H*0.5,'GOT AWAY +'+fmt(cr)+' CR','#42DCE5');
@@ -534,7 +643,7 @@ function eventSuccess(){
   endEvent();
 }
 function eventFail(){
-  if(!sim.ev || sim.ev.id==='diner') return;
+  if(!sim.ev || ['diner','convoy','blackout'].includes(sim.ev.id)) return;
   const eventId=sim.ev.id;
   if(sim.ev.id==='rival'){
     const cr=cachedParts.base*15; state.credits+=cr;
@@ -547,7 +656,7 @@ function eventFail(){
 }
 function dinerReward(){
   if(!sim.ev||sim.ev.id!=='diner') return;
-  const cr=cachedParts.base*45; state.credits+=cr; gainRep(3);
+  const cr=cachedParts.base*45*evMult(); state.credits+=cr; gainRep(3);
   sim.boosts.push({name:'DINER SPECIAL', mult:2, t:30});
   emitBurst(R.W/2,R.H*.58,'#f9d68a',16);
   eventBeat('diner','reward','Credits delivered · x2 income for 30 seconds.');
@@ -558,6 +667,7 @@ function updateEvents(dt){
   if(sim.ev){
     const ev=sim.ev;
     ev.t-=dt;
+    if(ev.id==='convoy'){ ev.waveT-=dt; if(ev.waveT<=0){ ev.waveT=.7; const b0=randInt(3); for(let k=0;k<2;k++){ const lane=(b0+k)%3; sim.packages.push({lane,laneF:(lane-1)*4.5,attracted:0,z:1500+k*60,type:Math.random()<.25?'rush':'std',seed:Math.random()*7,convoy:true}); } } }
     if(ev.id==='police'){sim.sirenT-=dt;if(sim.sirenT<=0){sim.sirenT=0.9;AudioSys.sfx('siren');}if(sim.policeCar){sim.policeCar.z=610+Math.sin(sim.clock*1.3)*75;const ln=Math.round(1+Math.sin(sim.clock*.75));sim.policeCar.laneF+=((ln-1)*4.5-sim.policeCar.laneF)*Math.min(1,dt*1.6);}}
     if(ev.t<=0){ if(ev.id==='diner') endEvent(); else eventSuccess(); }
   } else {
@@ -586,11 +696,12 @@ function closeCallCheck(c){
   }
 }
 function collectPackage(p, scr){
+  if(p.convoy&&sim.ev&&sim.ev.id==='convoy') sim.ev.got++;
   const gm=gpsMult(), inc=cachedParts.base;
   let cr=0, msg='', color='#42DCE5';
   if(p.type==='std'){ cr=inc*2.5*gm; state.packages++; msg='+'+fmt(cr)+' CR'; }
   else if(p.type==='rush'){ cr=inc*7.5*gm; state.packages++; msg='RUSH +'+fmt(cr); color='#FF784F'; }
-  else if(p.type==='energy'){ sim.od.charge=Math.min(100,sim.od.charge+8); cr=inc*0.8*gm; msg='+ENERGY CELL'; color='#7DF3EF'; }
+  else if(p.type==='energy'){ sim.od.charge=Math.min(100,sim.od.charge+8+state.upgrades.cells); cr=inc*0.8*gm; msg='+ENERGY CELL'; color='#7DF3EF'; }
   else { cr=inc*30*gm; state.packages++; state.fragments++; gainRep(2); msg='DATA FRAGMENT +1'; color='#E34FB9'; }
   state.credits+=cr;
   floatText(scr.x, scr.y-30, msg, color);
@@ -634,10 +745,10 @@ function autoThink(){
 /* ---------------- SPAWNING ---------------- */
 function spawnStuff(dt){
   sim.trafficT-=dt;
-  const dens = sim.ev&&sim.ev.id==='rival'?1.9 : sim.ev&&sim.ev.id==='police'?2.3 : 1;
+  const dens = (sim.ev&&sim.ev.id==='rival'?1.9 : sim.ev&&sim.ev.id==='police'?2.3 : 1)*(TIMELINES[state.timeline].traffic||1);
   if(sim.trafficT<=0 && sim.traffic.length<16){
     sim.trafficT=rand(1.5,2.6)/dens;
-    const tl=visualTimeline(undefined,true),types=isCityEnv(tl.env)?['sedan','sedan','van','truck','bike','sport','wagon','hover']:['sedan','sedan','van','truck','bike','sport','wagon','pickup'];
+    const tl=visualTimeline(undefined,true),types=(isCityEnv(tl.env)||tl.env==='quantum')?['sedan','sedan','van','truck','bike','sport','wagon','hover']:['sedan','sedan','van','truck','bike','sport','wagon','pickup'];
     const ty=pick(types),spd=ty==='bike'?rand(40,56):(['sport','hover'].includes(ty)?rand(48,66):['truck','pickup'].includes(ty)?rand(18,30):rand(24,38));
     // never spawn an unavoidable 3-lane wall: skip lanes where both other lanes already have a car arriving within ~1.1s of this one
     const vN=visSpeed(), arr=(z,sp)=>(z-60)/Math.max(1,vN-sp), tn=arr(2200,spd);
@@ -648,16 +759,17 @@ function spawnStuff(dt){
   if(sim.pkgT<=0){
     sim.pkgT=rand(2.2,3.6);
     const r=Math.random();
-    const lane=randInt(3);sim.packages.push({lane,laneF:(lane-1)*4.5,attracted:0,z:1600,type:r<0.62?'std':r<0.82?'rush':r<0.94?'energy':'rare',seed:Math.random()*7});
+    const lane=randInt(3);sim.packages.push({lane,laneF:(lane-1)*4.5,attracted:0,z:1600,type:r<0.62?'std':r<0.82?'rush':r<0.94-0.02*state.prestige.luck?'energy':'rare',seed:Math.random()*7});
   }
     const tl=visualTimeline(undefined,true);
-    while(sim.nextSc < sim.travel+2300){
+    const pushBill=(abs,side,off)=>{ if(!sim.scenery.some(o=>o.side===side&&(o.type==='bill'||o.type==='sign')&&Math.abs(o.abs-abs)<75)) sim.scenery.push({type:'bill',abs,side,off,seed:Math.random()}); };
+  while(sim.nextSc < sim.travel+2300){
       const z=sim.nextSc, sd=Math.random(), tl=visualTimeline(z,true);
     if(tl.env==='desert'){
       const bt=['palm','cactus','cactus'][Math.floor(z/7000)%3];
       sim.scenery.push({type:bt, abs:z+rand(0,20), side:-1, off:rand(12,30), seed:sd});
       sim.scenery.push({type:bt, abs:z+rand(0,20), side:1, off:rand(12,30), seed:Math.random()});
-      if(Math.random()<0.28) sim.scenery.push({type:'bill', abs:z+rand(0,40), side:Math.random()<0.5?-1:1, off:rand(12,20), seed:Math.random()});
+      if(Math.random()<0.28) pushBill(z+rand(0,40),Math.random()<0.5?-1:1,rand(12,20));
     } else if(tl.env==='canyon'){
       sim.scenery.push({type:'rock',abs:z+rand(0,30),side:-1,off:rand(12,30),seed:sd});
       sim.scenery.push({type:'rock',abs:z+rand(0,30),side:1,off:rand(12,30),seed:Math.random()});
@@ -666,14 +778,14 @@ function spawnStuff(dt){
     } else if(tl.env==='coast'){
       sim.scenery.push({type:'palm',abs:z+rand(0,20),side:-1,off:rand(16,34),seed:sd});
       if(z%3600<100)sim.scenery.push({type:'lighthouse',abs:z+40,side:Math.random()<.5?-1:1,off:rand(22,36),seed:Math.random()});
-      if(Math.random()<0.36)sim.scenery.push({type:'bill',abs:z+rand(0,45),side:Math.random()<.5?-1:1,off:rand(12,24),seed:Math.random()});
+      if(Math.random()<0.36)pushBill(z+rand(0,45),Math.random()<.5?-1:1,rand(12,24));
     } else {
       sim.scenery.push({type:'sign', abs:z, side:-1, off:rand(11,22), seed:sd});
       if(Math.random()<0.7) sim.scenery.push({type:'sign', abs:z+30, side:1, off:rand(11,22), seed:Math.random()});
-      if(Math.random()<0.3) sim.scenery.push({type:'bill', abs:z+60, side:Math.random()<0.5?-1:1, off:rand(12,20), seed:Math.random()});
+      if(Math.random()<0.3) pushBill(z+60,Math.random()<0.5?-1:1,rand(12,20));
       if(tl.stageId==='skybridge'&&z%2700<100)sim.scenery.push({type:'bridge',abs:z+70,side:0,off:0,seed:sd});
     }
-    if(Math.random()<0.45){ const cty=isCityEnv(tl.env); sim.scenery.push({type:'bldg', abs:z+rand(0,60), side:Math.random()<.5?-1:1, off:cty?rand(15,30):rand(22,46), seed:Math.random()}); }
+    if(Math.random()<0.45){ const cty=isCityEnv(tl.env); sim.scenery.push({type:tl.env==='quantum'?'crystal':'bldg', abs:z+rand(0,60), side:Math.random()<.5?-1:1, off:cty?rand(15,30):rand(22,46), seed:Math.random()}); }
       sim.nextSc+=100;
     }
     if(isCityEnv(tl.env)){
@@ -698,14 +810,21 @@ function moveObjects(dt){
   if(sim.rival){
     const r=sim.rival;
     r.z+=(r.tgt-r.z)*Math.min(1,dt*0.6);
-    if(!r.flee){
+    if(r.crashT>0){ r.crashT-=dt; if(Math.random()<.5){ const sp=worldToScreen(Math.max(40,r.z),r.laneF); emitBurst(sp.x,sp.y-sp.s*.6,'#9aa5b5',1); } if(r.crashT<=0&&!r.dead) r.tgt=170; }
+    if(!r.flee&&!r.dead){
       r.laneT-=dt;
-      if(r.laneT<=0){ r.laneT=rand(1.2,2.2); r.lane=clamp(r.lane+pick([-1,1]),0,2); }
+      if(r.laneT<=0){
+        r.laneT=rand(.35,.6);
+        const risk=l=>sim.traffic.some(c=>c.lane===l&&c.z>r.z-5&&(c.z-r.z)/Math.max(1,vs-c.spd)<1.3);
+        if(risk(r.lane)){ if(Math.random()<r.skill){ const o=[r.lane-1,r.lane+1].filter(l=>l>=0&&l<3&&!risk(l)); if(o.length) r.lane=pick(o); } }
+        else if(Math.random()<.18){ const nl=clamp(r.lane+pick([-1,1]),0,2); if(!risk(nl)||Math.random()<.3) r.lane=nl; }
+      }
       r.laneF+=((r.lane-1)*4.5-r.laneF)*Math.min(1,dt*2.5);
+      if(r.crashT<=0) for(let i=sim.traffic.length-1;i>=0;i--){ const c=sim.traffic[i]; const pz=c.z+Math.max(0,(vs-c.spd)*dt); if(r.z>c.z-7&&r.z<pz+7&&Math.abs((c.lane-1)*4.5-r.laneF)<2.2){ rivalCrash(i); break; } }
     }
-    if(r.z>2150) sim.rival=null;
+    if(sim.rival&&((r.dead&&r.z<36)||r.z>2150)) sim.rival=null;
   }
-  const magnet=2.2+0.35*state.auto.sorting;
+  const magnet=(2.2+0.35*state.auto.sorting)*(1+0.12*state.upgrades.magnet);
   for(let i=sim.packages.length-1;i>=0;i--){
     const p=sim.packages[i];
     p.z-=vs*dt;
@@ -749,7 +868,7 @@ function update(dt){
   if(Math.abs(d)>0.002) sim.lanePos+=Math.sign(d)*Math.min(Math.abs(d),rate*dt);
 
   if(sim.od.active){ sim.od.t-=dt; if(sim.od.t<=0){ sim.od.active=false; toast('Overdrive ended','info'); } }
-  else sim.od.charge=Math.min(100, sim.od.charge+(1.1+0.05*state.upgrades.nos)*dt);
+  else sim.od.charge=Math.min(100, sim.od.charge+(1.1+0.05*state.upgrades.nos)*(1+0.08*state.upgrades.dynamo)*(TIMELINES[state.timeline].odCharge||1)*dt);
 
   for(let i=sim.boosts.length-1;i>=0;i--){ const b=sim.boosts[i]; b.t-=dt; if(b.t<=0) sim.boosts.splice(i,1); }
   if(sim.collisionT>0) sim.collisionT-=dt;
@@ -765,7 +884,7 @@ function update(dt){
   updateEvents(dt);
 
   sim.deliverT+=dt;
-  if(sim.deliverT>=CONFIG.deliveryInterval){ sim.deliverT-=CONFIG.deliveryInterval; doDelivery(); }
+  if(sim.deliverT>=delivInt()){ sim.deliverT-=delivInt(); doDelivery(); }
 
   while(state.msIdx<MILESTONES.length && state.distance>=MILESTONES[state.msIdx]){
     const cr=Math.max(50,cachedParts.base*60);
@@ -773,11 +892,13 @@ function update(dt){
     toast('MILESTONE '+fmt(MILESTONES[state.msIdx-1])+' KM — +'+fmt(cr)+' CR','reward');
     AudioSys.sfx('success');
   }
-  for(const k in TIMELINES){
+  for(const k in TIMELINES){   // eras are earned by distance in the CURRENT run and reset on Dawnbreak
     const T=TIMELINES[k];
-    if(state.lifetimeDistance>=T.unlock && !state.unlocked.includes(k)){
+    if(state.distance>=T.unlock && !state.unlocked.includes(k)){
       state.unlocked.push(k); state.newTL=true; AudioSys.sfx('prestige');
-      showModal('<h2>NEW TIMELINE UNLOCKED</h2><p>A new era has appeared on your dashboard: <b style="color:var(--cyan)">'+T.name+'</b>.</p><p>'+T.desc+'</p><p>Travel there from the TIMELINE tab for a <b>x'+T.mult+'</b> income modifier'+(T.mod?' and '+T.mod:'')+'.</p>'+modalBtns([{label:'KEEP DRIVING',cls:'buy'}]));
+      if(!state.eraSeen[k]){ state.eraSeen[k]=true;
+        showModal('<h2>NEW ERA REACHED</h2><p>A new era has appeared on your dashboard: <b style="color:var(--cyan)">'+T.name+'</b>.</p><p>'+T.desc+'</p><p>Travel there from the TIMELINE tab for a <b>x'+Math.pow(T.mult,ECON.mulPow).toFixed(2)+'</b> income modifier'+(T.mod?' and '+T.mod:'')+'.</p><p style="opacity:.75">Eras reset with each Dawnbreak, so you climb them again every run.</p>'+modalBtns([{label:'KEEP DRIVING',cls:'buy'}]));
+      } else toast('ERA UNLOCKED — '+T.name,'reward',4000);
       saveGame();
     }
   }
@@ -803,7 +924,7 @@ const R = {
     this.cv.style.width=this.W+'px'; this.cv.style.height=this.H+'px';
     this.cx.setTransform(this.DPR,0,0,this.DPR,0,0);
     this.f=clamp(Math.min(this.W*0.98,this.H*1.5)*4,1800,9000);
-    this.horizonY=this.H*0.40;
+    this.horizonY=this.H*0.40; this.topInset=(document.getElementById('topbar')||{}).offsetHeight||58;
     this.camH=(this.H*0.78-this.horizonY)*60/this.f;
     this.buildSun(); this.buildStars(); this.buildCity();
   },
@@ -854,9 +975,9 @@ const R = {
     // sun
     const sunX=W/2-sim.curve*34;
     g.drawImage(this.sun, sunX-this.sun.width/2, hY-this.sun.height*0.42);
-    this.drawAir(g,t);
     // background scenery
-    if(isCityEnv(tl.env)) this.drawCity(g,tl); else this.drawRidges(g,tl);
+    if(tl.env==='quantum') this.drawQuantum(g,tl,t); else if(isCityEnv(tl.env)) this.drawCity(g,tl); else this.drawRidges(g,tl);
+    this.drawAir(g,t);
     // ground
     g.fillStyle=tl.ground; g.fillRect(-12,hY,W+24,H-hY+14);
     if(tl.env==='coast')this.drawWater(g,tl,t);
@@ -866,6 +987,8 @@ const R = {
     this.drawWorld(g,tl,t,dt);
     this.drawPlayer(g,tl,t);
     this.drawFX(g,dt,t,tl);
+    if(tl.env==='glitch') this.drawGlitch(g,t);
+    if(sim.ev&&sim.ev.id==='blackout'){ const W=this.W,H=this.H,gg=g.createRadialGradient(W/2,H*.78,H*.08,W/2,H*.78,H*.55); gg.addColorStop(0,'rgba(5,4,15,0)'); gg.addColorStop(1,'rgba(5,4,15,'+(state.settings.reduceFlashes?.45:.8)+')'); g.fillStyle=gg; g.fillRect(0,0,W,H); }
     for(const p of sim.particles){g.globalAlpha=clamp(p.life/p.max,0,1);g.fillStyle=p.color;if(state.settings.glowEffects){g.shadowColor=p.color;g.shadowBlur=6;}g.beginPath();g.arc(p.x,p.y,p.r*(.65+.35*p.life/p.max),0,7);g.fill();g.shadowBlur=0;}
     // floating texts
     g.textAlign='center'; g.font='700 14px Orbitron, monospace';
@@ -878,6 +1001,36 @@ const R = {
     }
     g.globalAlpha=1;
     g.restore();
+  },
+  drawQuantum(g,tl,t){
+    const hY=this.horizonY,W=this.W,H=this.H;
+    for(let i=0;i<3;i++){
+      g.strokeStyle=i%2?tl.edge:tl.edge2; g.globalAlpha=.10+.05*Math.sin(t*.6+i); g.lineWidth=H*.03; g.beginPath();
+      for(let x=-20;x<=W+20;x+=24){ const yy=hY*(.25+i*.16)+Math.sin(x*.01+t*(.4+i*.15)+i*2)*H*.03; x<=-20?g.moveTo(x,yy):g.lineTo(x,yy); }
+      g.stroke();
+    }
+    g.globalAlpha=.35; g.strokeStyle=tl.edge2; g.lineWidth=2;
+    for(const k of [.28,.2]){ g.beginPath(); g.ellipse(W*.5-sim.curve*40,hY-H*.14,W*k,H*k*.21,0,0,7); g.stroke(); }
+    g.globalAlpha=1;
+    for(let i=0;i<9;i++){
+      const sx=((i*.137+.05)*W*1.3-sim.curve*60*(.5+(i%3)*.3)-W*.15), sz=H*(.02+(i%4)*.012), sy=hY-H*(.04+((i*37)%10)*.012)-Math.sin(t*.5+i)*H*.01;
+      g.fillStyle='rgba(20,10,60,.7)'; g.strokeStyle=i%2?tl.edge:tl.edge2; g.lineWidth=1.5;
+      g.beginPath(); g.moveTo(sx,sy-sz); g.lineTo(sx+sz*.7,sy); g.lineTo(sx,sy+sz); g.lineTo(sx-sz*.7,sy); g.closePath(); g.fill(); g.stroke();
+    }
+  },
+  drawCrystal(g,x,y,s,seed,tl){
+    if(s<.9) return;
+    const h1=n=>hash1(seed*271+n), w=(1.4+h1(1)*1.6)*s, h=(6+h1(2)*14)*s;
+    g.fillStyle='rgba(30,16,80,.75)'; g.strokeStyle=h1(3)>.5?tl.edge:tl.edge2; g.lineWidth=Math.max(1,.1*s);
+    g.beginPath(); g.moveTo(x,y-h); g.lineTo(x+w,y-h*.55); g.lineTo(x+w*.7,y); g.lineTo(x-w*.7,y); g.lineTo(x-w,y-h*.55); g.closePath(); g.fill(); g.stroke();
+    g.globalAlpha*=.35; g.beginPath(); g.moveTo(x,y-h); g.lineTo(x,y); g.stroke(); g.globalAlpha/=.35;
+  },
+  drawGlitch(g,t){
+    if(reducedMotion()||state.settings.reduceFlashes) return;
+    const k=Math.floor(t*6); if(hash1(k)<.55) return;
+    const W=this.W,H=this.H,D=this.DPR||1;
+    for(let i=0;i<3;i++){ const sy=Math.floor(hash1(k*3+i)*H*.9), sh=Math.floor(6+hash1(k*7+i)*H*.05), dx=(hash1(k*11+i)-.5)*W*.08; try{ g.drawImage(this.cv,0,sy*D,this.cv.width,sh*D,dx,sy,W,sh); }catch(e){} }
+    g.fillStyle='rgba(255,0,170,.06)'; g.fillRect(0,Math.floor(hash1(k*5)*H),W,2);
   },
   drawRidges(g,tl){
     const hY=this.horizonY,H=this.H,W=this.W;
@@ -902,7 +1055,7 @@ const R = {
     }
   },
   drawCity(g,tl){
-    const hY=this.horizonY, W=this.W, H=this.H, shift=-sim.curve*70, cy=tl.env==='cyber';
+    const hY=this.horizonY, W=this.W, H=this.H, shift=-sim.curve*70, cy=tl.env==='cyber'||tl.env==='corp'||tl.env==='glitch';
     g.fillStyle=tl.ridge;
     for(const b of this.city2){
       const x=b.x*W*1.45-W*0.22+shift*0.55, bw=b.w*W, bh=Math.min(b.h*H*(cy?1.5:1),hY-8);
@@ -1023,6 +1176,7 @@ const R = {
         case 'palm': this.drawPalm(g,x,y,s,it.o.seed,tl); break;
         case 'cactus': this.drawCactus(g,x,y,s,it.o.seed,tl); break;
         case 'bldg': this.drawBldg(g,x,y,s,it.o.seed,tl); break;
+        case 'crystal': this.drawCrystal(g,x,y,s,it.o.seed,tl); break;
         case 'sign': this.drawSign(g,x,y,s,it.o.seed,tl); break;
         case 'bill': this.drawBill(g,x,y,s,it.o.seed,tl); break;
         case 'gate': this.drawGate(g,z,s,tl); break;
@@ -1032,7 +1186,7 @@ const R = {
         case 'windmill': this.drawWindmill(g,x,y,s,it.o.seed,tl); break;
         case 'bridge': this.drawBridge(g,z,s,tl); break;
         case 'traffic': drawCarRear(g,x,y,s,{c1:it.o.pal[0],c2:it.o.pal[1],type:it.o.type}); break;
-        case 'rival': drawCarRear(g,x,y,s,{c1:'#ffd08a',c2:'#ff784f',type:'sedan',spoiler:true,rival:true}); break;
+        case 'rival': { const ro=it.o, hurt=ro.crashT>0||ro.dead; if(hurt){ g.save(); g.translate(x,y-.6*s); g.rotate(ro.dead?0.9:Math.sin(ro.crashT*12)*.55+ro.crashT*1.2); g.translate(-x,-(y-.6*s)); } drawCarRear(g,x,y,s,{c1:'#ffd08a',c2:'#ff784f',type:'sedan',spoiler:true,rival:true}); if(hurt) g.restore(); break; }
         case 'police': this.drawPoliceCar(g,x,y,s,t); break;
         case 'pkg': this.drawPkg(g,x,y,s,it.o,t); break;
       }
@@ -1064,29 +1218,34 @@ const R = {
     const w=(4+h1(1)*5)*s, h=(city?6+h1(2)*16:3+h1(2)*5)*s, c=[tl.edge,tl.edge2,'#FF784F','#F9D68A'][Math.floor(h1(3)*4)];
     g.fillStyle=city?'#120d2a':'#17112c'; g.fillRect(x-w/2,y-h,w,h);
     g.fillStyle=c; g.globalAlpha*=.8; g.fillRect(x-w/2,y-h-.25*s,w,.25*s); g.globalAlpha/=.8;
-    if(s>2.5){ const cw=1.1*s,ch=.9*s,cols=Math.max(1,Math.floor(w/(cw*1.9))),rows=Math.max(1,Math.floor(h/(ch*2.1)));
+    if(s>2.5){ const cw=Math.min(1.1*s,13),ch=Math.min(.9*s,11),cols=Math.max(1,Math.min(24,Math.floor(w/(cw*1.9)))),rows=Math.max(1,Math.min(30,Math.floor(h/(ch*2.1))));
       for(let r=0;r<rows;r++)for(let q=0;q<cols;q++){ if(hash1(seed*91+r*7+q*3)>.4){ g.fillStyle=hash1(seed*17+r+q)>.5?'#F9D68A':c; g.globalAlpha*=.75; g.fillRect(x-w/2+(q+.5)*w/cols-cw/2,y-h+(r+.5)*h/rows-ch/2,cw,ch); g.globalAlpha/=.75; } } }
     if(!city && h1(4)>.5 && s>2){ g.fillStyle=c; g.fillRect(x-w*.2,y-h-.9*s,w*.4,.5*s); }
   },
   drawAir(g,t){
-    const W=this.W,hY=this.horizonY;
+    const W=this.W,hY=this.horizonY,top=(this.topInset||58)+14,bot=hY*.8;
+    if(!sim.air.length||bot-top<24) return;
+    g.save(); g.beginPath(); g.rect(0,top-10,W,hY-top+10); g.clip();      // only ever drawn inside the visible sky band
     for(const a of sim.air){
-      const z=Math.max(10,W*(a.k==='heli'?.016:.011));
-      g.save(); g.translate(a.x*W,a.y*hY); g.scale(a.dir,1); g.fillStyle='#0c0818';
-      if(a.k==='heli'){
+      const heli=a.k==='heli', z=clamp(W*(heli?.0075:.0055),heli?4:3,heli?10:8), y=top+a.y*(bot-top);
+      g.save(); g.translate(a.x*W,y); g.scale(a.dir,1); g.globalAlpha=.82; g.fillStyle='#0c0818';
+      if(heli){
         g.beginPath(); g.ellipse(0,0,z,z*.5,0,0,7); g.fill();
         g.fillRect(-z*2.2,-z*.12,z*1.5,z*.22); g.fillRect(-z*2.2,-z*.5,z*.18,z*.5); g.fillRect(-z*.08,-z*.75,z*.16,z*.3);
         g.strokeStyle='#0c0818'; g.lineWidth=Math.max(1,z*.08); const rl=z*1.9*Math.abs(Math.cos(t*18+a.ph));
         g.beginPath(); g.moveTo(-rl,-z*.78); g.lineTo(rl,-z*.78); g.stroke();
       } else {
+        const gr=g.createLinearGradient(-z*2.3,0,-z*2.3-W*.09,0); gr.addColorStop(0,'rgba(255,255,255,.22)'); gr.addColorStop(1,'rgba(255,255,255,0)');
+        g.strokeStyle=gr; g.lineWidth=Math.max(1,z*.35); g.beginPath(); g.moveTo(-z*2.3,0); g.lineTo(-z*2.3-W*.09,0); g.stroke();
         g.beginPath(); g.ellipse(0,0,z*2,z*.28,0,0,7); g.fill();
         g.beginPath(); g.moveTo(-z*.2,0); g.lineTo(-z*1.1,z*1.1); g.lineTo(-z*.5,z*1.1); g.lineTo(z*.5,0); g.fill();
         g.beginPath(); g.moveTo(-z*1.7,0); g.lineTo(-z*2.3,-z*.8); g.lineTo(-z*1.9,-z*.8); g.lineTo(-z*1.2,0); g.fill();
       }
-      g.fillStyle=Math.sin(t*5+a.ph)>0?'#ff2d55':'#42dce5'; if(state.settings.glowEffects){g.shadowColor=g.fillStyle;g.shadowBlur=8;}
-      g.beginPath(); g.arc(a.k==='heli'?-z*2.2:-z*1.9,a.k==='heli'?-z*.3:-z*.8,Math.max(1.2,z*.1),0,7); g.fill();
+      g.globalAlpha=1; g.fillStyle=Math.sin(t*5+a.ph)>0?'#ff2d55':'#42dce5'; if(state.settings.glowEffects){ g.shadowColor=g.fillStyle; g.shadowBlur=6; }
+      g.beginPath(); g.arc(heli?-z*2.2:-z*1.9,heli?-z*.3:-z*.8,Math.max(1.2,z*.14),0,7); g.fill();
       g.restore();
     }
+    g.restore();
   },
   drawCactus(g,x,y,s,seed,tl){
     if(s<1.2)return;
@@ -1377,6 +1536,7 @@ const I = {
   play:'<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',
   speaker:'<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
   speakerOff:'<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
+  trophy:'<svg viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3M12 14v4M8 20h8"/></svg>',
   full:'<svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
   fullExit:'<svg viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>',
   settings:'<svg viewBox="0 0 24 24"><path d="M18.97 9.84 L22.21 10.04 L22.21 13.96 L18.97 14.16 L18.46 15.41 L20.61 17.83 L17.83 20.61 L15.41 18.46 L14.16 18.97 L13.96 22.21 L10.04 22.21 L9.84 18.97 L8.59 18.46 L6.17 20.61 L3.39 17.83 L5.54 15.41 L5.03 14.16 L1.79 13.96 L1.79 10.04 L5.03 9.84 L5.54 8.59 L3.39 6.17 L6.17 3.39 L8.59 5.54 L9.84 5.03 L10.04 1.79 L13.96 1.79 L14.16 5.03 L15.41 5.54 L17.83 3.39 L20.61 6.17 L18.46 8.59Z"/><circle cx="12" cy="12" r="3.3"/></svg>',
@@ -1459,7 +1619,7 @@ function buildFleet(){
     +'<div class="pstats" id="fStats"></div></div>'+qtyTools()+sortTools('fleet');
   html+='<h3 class="sect">VEHICLES</h3><div class="cards">';
   for(const v of FLEET){
-    const each=v.income*Math.pow(1.25,state.fleetLv[v.id]);
+    const each=v.income*flvMulAt(state.fleetLv[v.id]);
     html+='<div class="card"><div class="chead">'+vehIcon(v.icon)
       +'<div><h4>'+v.name+'</h4><span class="tag">'+v.tag+'</span></div><span class="owned">x'+state.fleet[v.id]+'</span></div>'
       +'<div class="cinfo"><div>Each produces <b id="fe_'+v.id+'"></b></div><div>Type total <b id="ft_'+v.id+'"></b></div><div>Level <b id="fl_'+v.id+'"></b></div><div>Next unit payback <b>'+fmt(fleetCost(v)/Math.max(.001,v.income*(1+0.20*state.auto.synth)*(1+0.25*state.prestige.workforce)*routeMult()*cachedParts.player))+'s</b></div></div>'
@@ -1481,24 +1641,24 @@ function buildFleet(){
   { const sel=p.querySelector('[data-sort]'); sel.value=sortMode.fleet; sel.addEventListener('change',e=>{ sortMode.fleet=e.target.value; sortPanel('fleet',e.target.value); }); sortPanel('fleet',sortMode.fleet); }
   for(const v of FLEET){
     const fe=el('fe_'+v.id), ft=el('ft_'+v.id), fl=el('fl_'+v.id);
-    bindUpd(fe, ()=>fmt(v.income*Math.pow(1.25,state.fleetLv[v.id]))+' CR/s');
-    bindUpd(ft, ()=>fmt(state.fleet[v.id]*v.income*Math.pow(1.25,state.fleetLv[v.id])*(1+0.20*state.auto.synth)*(1+0.25*state.prestige.workforce)*routeMult())+' CR/s');
+    bindUpd(fe, ()=>fmt(v.income*flvMulAt(state.fleetLv[v.id]))+' CR/s');
+    bindUpd(ft, ()=>fmt(state.fleet[v.id]*v.income*flvMulAt(state.fleetLv[v.id])*fleetMul()*commonMul())+' CR/s');
     bindUpd(fl, ()=>String(state.fleetLv[v.id]));
     const bb=el('fb_'+v.id), lb=el('flb_'+v.id);
-    bindUpd(bb, ()=>{const q=purchaseQuote(l=>Math.ceil(v.cost*Math.pow(1.35,l)),state.fleet[v.id],1e9);return {t:'BUY '+q.label+' · '+fmt(q.shown)+' CR',d:!q.enabled};});
-    bindUpd(lb, ()=>{if(state.fleetLv[v.id]>=100)return {t:'MAX LEVEL',d:true};const q=purchaseQuote(l=>Math.ceil(v.cost*3*Math.pow(1.6,l)),state.fleetLv[v.id],100);return {t:'LV+ '+q.label+' · '+fmt(q.shown)+' CR',d:!q.enabled};});
+    bindUpd(bb, ()=>{const q=purchaseQuote(l=>fleetAt(v,l),state.fleet[v.id],1e9);return {t:'BUY '+q.label+' · '+fmt(q.shown)+' CR',d:!q.enabled};});
+    bindUpd(lb, ()=>{if(state.fleetLv[v.id]>=ECON.flvCap)return {t:'MAX LEVEL',d:true};const q=purchaseQuote(l=>flvAt(v,l),state.fleetLv[v.id],ECON.flvCap);return {t:'LV+ '+q.label+' · '+fmt(q.shown)+' CR',d:!q.enabled};});
   }
   for(const a of AUTO){
     const b=el('ab_'+a.id);
     bindUpd(b, ()=>{
       if(state.auto[a.id]>=a.max) return {t:'MAX LEVEL',d:true};
-      const q=purchaseQuote(l=>Math.ceil(a.base*Math.pow(a.growth,l)),state.auto[a.id],a.max);return {t:(state.auto[a.id]?'LV+ ':'BUY ')+q.label+' · '+fmt(q.shown)+' CR',d:!q.enabled};
+      const q=purchaseQuote(l=>autoAt(a,l),state.auto[a.id],a.max);return {t:(state.auto[a.id]?'LV+ ':'BUY ')+q.label+' · '+fmt(q.shown)+' CR',d:!q.enabled};
     });
   }
   for(const k of ['rate','cap']) bindUpd(el('ob_'+k),()=>{const mx=(k==='rate'?19:46)-state.prestige.echo,base=k==='rate'?1000:800,growth=k==='rate'?1.45:1.14;if(state.offUp[k]>=mx)return {t:'MAX LEVEL',d:true};const q=purchaseQuote(l=>Math.ceil(base*Math.pow(growth,l)),state.offUp[k],mx);return {t:'UPGRADE '+q.label+' · '+fmt(q.shown)+' CR',d:!q.enabled};});
   bindUpd(el('offNow'),()=>'OFFLINE: '+Math.round(offEff()*100)+'% RATE · '+(offCapS()/3600)+'H CAP'+(state.prestige.echo?' (INCL. TAPE ECHO)':''));
   const fs=el('fStats');
-  bindUpd(fs, ()=>'FLEET INCOME '+fmt(cachedParts.fleet)+' CR/S · UNITS '+units);
+  bindUpd(fs, ()=>'FLEET INCOME '+fmt(cachedParts.fleet)+' CR/S · UNITS '+units+' · PRICE INDEX x'+priceIdx().toFixed(1));
   runUpdaters();
 }
 function effectAuto(a,l){
@@ -1520,7 +1680,7 @@ function garageImpact(u){
   if(afterS>beforeS) return 'Next: +'+(afterS-beforeS).toFixed(1)+' km/s';
   return 'Next level: '+u.eff(lvl+1);
 }
-function courierPaint(){const total=GARAGE.reduce((n,u)=>n+state.upgrades[u.id],0);return state.settings.palette==='ocean'?['#4de2c4','#206f86']:state.settings.palette==='arcade'?['#ffe34f','#bf3fbd']:state.settings.palette==='mono'?['#e0e0ea','#777786']:TPAL[Math.floor(total/5)%TPAL.length];}
+function courierPaint(){const lv=LIVERIES.find(l=>l.id===state.livery);if(lv&&lv.c1&&(!lv.req||state.ach[lv.req]))return [lv.c1,lv.c2];const total=GARAGE.reduce((n,u)=>n+state.upgrades[u.id],0);return state.settings.palette==='ocean'?['#4de2c4','#206f86']:state.settings.palette==='arcade'?['#ffe34f','#bf3fbd']:state.settings.palette==='mono'?['#e0e0ea','#777786']:TPAL[Math.floor(total/5)%TPAL.length];}
 function garagePartsLabel(){const names=[['turbo','Turbo vents'],['tires','Synth rims'],['gps','Holo-GPS'],['cassette','Cassette deck'],['solar','Solar roof'],['gearbox','Quantum diffuser'],['chrome','Chrome exhaust'],['nos','NOS booster']];const on=names.filter(([id])=>state.upgrades[id]>0).map(([id,n])=>n+' Lv.'+state.upgrades[id]);return on.length?on.join(' · '):'Factory-spec courier · install an upgrade to customize your ride.';}
 function drawGaragePreview(){const c=el('garagePreview');if(!c)return;const g=c.getContext('2d'),w=c.width,h=c.height;g.clearRect(0,0,w,h);const bg=g.createLinearGradient(0,0,0,h);bg.addColorStop(0,'#171329');bg.addColorStop(1,'#0c1020');g.fillStyle=bg;g.fillRect(0,0,w,h);g.strokeStyle='rgba(66,220,229,.13)';g.lineWidth=1;for(let y=25;y<h;y+=24){g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke();}const paint=courierPaint();drawCarRear(g,w*.5,h-7,49,{c1:paint[0],c2:paint[1],type:'sedan',spoiler:true,player:true,upgrades:state.upgrades,od:false});const name=el('garageModelName'),parts=el('garageParts');if(name)name.textContent='MK-'+Math.max(1,GARAGE.reduce((n,u)=>n+state.upgrades[u.id],0))+' COURIER';if(parts)parts.textContent=garagePartsLabel();}
 function buildGarage(){
@@ -1535,18 +1695,18 @@ function buildGarage(){
       'Now: '+u.eff(lvl)+' &nbsp;→&nbsp; '+u.eff(lvl+1)+'<br><span class="impact">'+garageImpact(u)+'</span>',
       '<button class="btn buy" data-act="garage" data-id="'+u.id+'" id="gb_'+u.id+'"></button>');
   }
-  p.innerHTML=html;
+  html+=liveryHTML(); p.innerHTML=html;
   drawGaragePreview();
   { const sel=p.querySelector('[data-sort]'); sel.value=sortMode.garage; sel.addEventListener('change',e=>{ sortMode.garage=e.target.value; sortPanel('garage',e.target.value); }); sortPanel('garage',sortMode.garage); }
   for(const u of GARAGE){
     const b=el('gb_'+u.id);
     bindUpd(b, ()=>{
       if(state.upgrades[u.id]>=u.max) return {t:'MAX LEVEL',d:true};
-      const q=purchaseQuote(l=>Math.ceil(u.base*Math.pow(u.growth,l)),state.upgrades[u.id],u.max);return {t:'UPGRADE '+q.label+' · '+fmt(q.shown)+' CR',d:!q.enabled};
+      const q=purchaseQuote(l=>garageAt(u,l),state.upgrades[u.id],u.max);return {t:'UPGRADE '+q.label+' · '+fmt(q.shown)+' CR',d:!q.enabled};
     });
   }
   const gs=el('gStats');
-  bindUpd(gs, ()=>'VEHICLE LV '+GARAGE.reduce((a,u)=>a+state.upgrades[u.id],0)+' · SPEED '+cachedSpeed.toFixed(1)+' KM/S');
+  bindUpd(gs, ()=>'VEHICLE LV '+GARAGE.reduce((a,u)=>a+state.upgrades[u.id],0)+' · SPEED '+cachedSpeed.toFixed(1)+' KM/S · PRICE INDEX x'+priceIdx().toFixed(1));
   runUpdaters();
 }
 /* ---- ROUTES panel ---- */
@@ -1554,38 +1714,38 @@ function buildRoutes(){
   const p=el('p-routes'); PUP=[];
   const owned=ROUTES.filter(r=>state.routesOwned[r.id]).length;
   let html='<div class="phead"><h2>ROUTES</h2><p>Assign your fleet to a delivery route. Higher routes multiply all fleet income. Each route needs lifetime distance <b>and</b> a one-time payment, and must be bought again after Dawnbreak.</p>'
-    +'<div class="pstats">ACTIVE MULTIPLIER x'+routeMult().toFixed(2)+' · '+owned+'/'+ROUTES.length+' OWNED</div></div>';
+    +'<div class="pstats">ACTIVE MULTIPLIER x'+Math.pow(routeMult(),ECON.mulPow).toFixed(2)+' · '+owned+'/'+ROUTES.length+' OWNED</div></div>';
   for(const r of ROUTES){
     const have=!!state.routesOwned[r.id], reached=state.lifetimeDistance>=r.req, active=state.route===r.id;
     let status,btn='',bar='';
     if(have){ status=active?'● ACTIVE ROUTE':'Owned'; if(!active) btn='<button class="btn" data-act="route" data-id="'+r.id+'">ASSIGN</button>'; }
-    else if(reached){ status='Available · '+fmt(r.cost)+' CR'; btn='<button class="btn buy" data-act="routebuy" data-id="'+r.id+'" id="rb_'+r.id+'"></button>'; }
-    else { status='Requires '+fmt(r.req)+' km lifetime, then '+fmt(r.cost)+' CR'; bar='<div class="unlock-progress" aria-label="Unlock progress"><i style="width:'+clamp(state.lifetimeDistance/Math.max(1,r.req)*100,0,100)+'%"></i></div>'; }
-    html+='<div class="tcard'+(active?' active':'')+(have||reached?'':' locked')+'"><div class="yr" style="font-size:18px;color:var(--cyan)">x'+r.mult.toFixed(2)+'</div>'
+    else if(reached){ status='Available · '+fmt(rc(r))+' CR'; btn='<button class="btn buy" data-act="routebuy" data-id="'+r.id+'" id="rb_'+r.id+'"></button>'; }
+    else { status='Requires '+fmt(r.req)+' km lifetime, then '+fmt(rc(r))+' CR'; bar='<div class="unlock-progress" aria-label="Unlock progress"><i style="width:'+clamp(state.lifetimeDistance/Math.max(1,r.req)*100,0,100)+'%"></i></div>'; }
+    html+='<div class="tcard'+(active?' active':'')+(have||reached?'':' locked')+'"><div class="yr" style="font-size:18px;color:var(--cyan)">x'+Math.pow(r.mult,ECON.mulPow).toFixed(2)+'</div>'
       +'<div class="tinfo"><h4 style="font-family:var(--font-n);font-size:13px">'+r.name+'</h4><p>'+r.desc+'</p><p style="color:var(--horizon)">'+status+'</p>'+bar+'</div>'+btn+'</div>';
   }
   p.innerHTML=html;
-  for(const r of ROUTES){ const b=el('rb_'+r.id); if(b) bindUpd(b,()=>({t:'UNLOCK · '+fmt(r.cost)+' CR',d:state.credits<r.cost})); }
+  for(const r of ROUTES){ const b=el('rb_'+r.id); if(b) bindUpd(b,()=>({t:'UNLOCK · '+fmt(rc(r))+' CR',d:state.credits<rc(r)})); }
   runUpdaters();
 }
 /* ---- TIMELINE panel ---- */
 function buildTimeline(){
   const p=el('p-timeline'); PUP=[];
-  let html='<div class="phead"><h2>TIMELINE</h2><p>Travel between eras. Each timeline changes the world outside and modifies all income. Unlocked timelines are permanent — even through Dawnbreak.</p></div>';
+  let html='<div class="phead"><h2>TIMELINE</h2><p>Travel between eras. Each timeline changes the world outside and modifies all income. Distance driven in the current run unlocks them, and they reset with Dawnbreak, so you climb the eras again every run.</p></div>';
   for(const k in TIMELINES){
     const tl=TIMELINES[k], unlocked=state.unlocked.includes(k), active=state.timeline===k;
     html+='<div class="tcard'+(active?' active':'')+(unlocked?'':' locked')+'"><div class="yr">'+tl.short+'</div>'
       +'<div class="tinfo"><h4 style="font-family:var(--font-n);font-size:13px;color:'+(active?'var(--cyan)':'inherit')+'">'+tl.name+'</h4><p>'+tl.desc+'</p>'
-      +'<p style="color:var(--horizon)">'+(unlocked?('Income x'+tl.mult.toFixed(1)+(tl.mod?' · '+tl.mod:'')+(active?' · ● YOU ARE HERE':'')):'Unlocks at '+fmt(tl.unlock)+' km lifetime distance')+'</p>'+(unlocked?'':'<div class="unlock-progress"><i style="width:'+clamp(state.lifetimeDistance/Math.max(1,tl.unlock)*100,0,100)+'%"></i></div>')+'</div>'
+      +'<p style="color:var(--horizon)">'+(unlocked?('Income x'+Math.pow(tl.mult,ECON.mulPow).toFixed(2)+(tl.mod?' · '+tl.mod:'')+(active?' · ● YOU ARE HERE':'')):'Unlocks at '+fmt(tl.unlock)+' km this run')+'</p>'+(unlocked?'':'<div class="unlock-progress"><i style="width:'+clamp(state.distance/Math.max(1,tl.unlock)*100,0,100)+'%"></i></div>')+'</div>'
       +(unlocked&&!active?'<button class="btn" data-act="travel" data-id="'+k+'">TRAVEL</button>':'')
       +'</div>';
   }
-  html+='<div class="tcard locked"><div class="yr" style="font-size:14px">???</div><div class="tinfo"><p>'+FUTURE_TL.join(' · ')+'</p><p style="color:var(--magenta)">FUTURE EXPANSION</p></div></div>';
+  if(FUTURE_TL.length) html+='<div class="tcard locked"><div class="yr" style="font-size:14px">???</div><div class="tinfo"><p>'+FUTURE_TL.join(' · ')+'</p><p style="color:var(--magenta)">FUTURE EXPANSION</p></div></div>';
   const gain=tapeReward(), ready=dawnbreakReady();
   html+='<h3 class="sect">DAWNBREAK</h3><div class="dawnbox">'
     +'<p>Fold this timeline back into the cassette. Dawnbreak resets your run in exchange for <b style="color:var(--horizon)">Cassette Tapes</b> — permanent currency for the upgrades below.</p>'
-    +'<div class="dawngrid"><div class="resetlist"><h5 class="h-reset">RESETS</h5><ul><li>Credits (minus Analog Memories)</li><li>Garage upgrades</li><li>Fleet, automation &amp; offline upgrades</li><li>Run distance &amp; milestones</li><li>Routes (buy again)</li></ul></div>'
-    +'<div class="resetlist"><h5 class="h-keep">RETAINED</h5><ul><li>Cassette Tapes</li><li>Permanent upgrades</li><li>Unlocked timelines</li><li>Data Fragments &amp; stats</li><li>Lifetime distance</li></ul></div></div>'
+    +'<div class="dawngrid"><div class="resetlist"><h5 class="h-reset">RESETS</h5><ul><li>Credits (minus Analog Memories)</li><li>Garage upgrades</li><li>Fleet, automation &amp; offline upgrades</li><li>Run distance &amp; milestones</li><li>Routes (buy again)</li><li>Era &amp; unlocked timelines</li></ul></div>'
+    +'<div class="resetlist"><h5 class="h-keep">RETAINED</h5><ul><li>Cassette Tapes</li><li>Permanent upgrades</li><li>Eras you have visited</li><li>Data Fragments &amp; stats</li><li>Lifetime distance</li></ul></div></div>'
     +'<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap"><div><span class="bigtape" id="dGain">+'+gain+'</span> '+icon('tape')+' TAPES ON RESET</div>'
     +'<div style="flex:1;min-width:200px"><div class="hud-sub">RUN DISTANCE <span id="dDist">'+fmt(state.distance)+'</span> / '+fmt(CONFIG.prestigeThreshold)+' KM</div>'
     +'<div id="odBar" style="margin-top:6px"><i id="dFill" style="display:block;height:100%;background:linear-gradient(90deg,var(--purple),var(--sunset));width:'+clamp(state.distance/CONFIG.prestigeThreshold*100,0,100)+'%"></i></div></div>'
@@ -1619,8 +1779,8 @@ function doDawnbreak(){
   if(!dawnbreakReady()||gain<1){ AudioSys.sfx('deny'); return; }
   showModal('<h2>INITIATE DAWNBREAK?</h2><p>The run ends. The sun comes up. A new cassette spins.</p>'
     +'<div class="statgrid"><div>Run distance<b>'+fmt(state.distance)+' km</b></div><div>Credits to reset<b>'+fmt(state.credits)+' CR</b></div><div>Prestige reward<b>+'+gain+' tapes</b></div><div>Current tapes<b>'+fmt(state.tapes)+'</b></div></div>'
-    +'<ul><li>Reset: credits, upgrades, fleet, automation, routes, offline upgrades, run distance</li>'
-    +'<li>Keep: <b style="color:var(--horizon)">'+gain+' Cassette Tapes</b>, permanent upgrades, timelines, stats</li></ul>'
+    +'<ul><li>Reset: credits, upgrades, fleet, automation, routes, offline upgrades, era, run distance</li>'
+    +'<li>Keep: <b style="color:var(--horizon)">'+gain+' Cassette Tapes</b>, permanent upgrades, stats. <b>Eras reset</b>: you climb them again.</li></ul>'
     +modalBtns([{label:'CANCEL'},{label:'DAWNBREAK',cls:'warn',fn:()=>{
       state.runHistory=(state.runHistory||[]).concat([{distance:state.distance,tapes:gain,timestamp:Date.now()}]).slice(-8);
       state.tapes+=gain; state.tapesEarned+=gain; state.prestigeCount++;
@@ -1628,7 +1788,7 @@ function doDawnbreak(){
       for(const u of GARAGE) state.upgrades[u.id]=0;
       for(const v of FLEET){ state.fleet[v.id]=0; state.fleetLv[v.id]=0; }
       for(const a of AUTO) state.auto[a.id]=0;
-      state.route='coastal'; state.routesOwned={coastal:true}; state.offUp={rate:0,cap:0}; state.distance=0; state.msIdx=0;
+      state.unlocked=['t1984']; state.timeline='t1984'; sim.scenery=[]; sim.nextSc=sim.travel+200; sim.nextGate=sim.travel+460; state.route='coastal'; state.routesOwned={coastal:true}; state.offUp={rate:0,cap:0}; state.fleet.coupe=state.prestige.headstart; state.upgrades.turbo=5*state.prestige.coldstart; for(let i=0;i<=2*state.prestige.memory&&i<ROUTES.length;i++) state.routesOwned[ROUTES[i].id]=true; state.route=ROUTES.filter(r=>state.routesOwned[r.id]).reduce((b,r)=>r.mult>b.mult?r:b,ROUTES[0]).id; state.distance=0; state.msIdx=0;
       sim.traffic=[];sim.packages=[];sim.boosts=[];sim.particles=[];sim.rival=null;sim.policeCar=null;sim.ev=null;
       sim.od={charge:0,active:false,t:0}; sim.collisionT=0; sim.invulnT=0;
       el('eventBanner').classList.add('hidden');
@@ -1642,23 +1802,23 @@ function doDawnbreak(){
 /* ---- ACTIONS ---- */
 const ACTIONS = {
   garage(id){
-    const u=GARAGE.find(x=>x.id===id), q=purchaseQuote(l=>Math.ceil(u.base*Math.pow(u.growth,l)),state.upgrades[u.id],u.max);
+    const u=GARAGE.find(x=>x.id===id), q=purchaseQuote(l=>garageAt(u,l),state.upgrades[u.id],u.max);
     if(!q.enabled){AudioSys.sfx('deny');return;}
     state.credits-=q.total;state.upgrades[u.id]+=q.qty;AudioSys.sfx('buy');saveGame();buildGarage();
   },
   fleet(id){
-    const v=FLEET.find(x=>x.id===id), q=purchaseQuote(l=>Math.ceil(v.cost*Math.pow(1.35,l)),state.fleet[v.id],1e9);
+    const v=FLEET.find(x=>x.id===id), q=purchaseQuote(l=>fleetAt(v,l),state.fleet[v.id],1e9);
     if(!q.enabled){AudioSys.sfx('deny');return;}
     state.credits-=q.total;state.fleet[v.id]+=q.qty;AudioSys.sfx('buy');
     toast(q.qty+' '+v.name+(q.qty===1?' joined':'s joined')+' the fleet','reward');saveGame();buildFleet();
   },
   fleetlv(id){
-    const v=FLEET.find(x=>x.id===id), q=purchaseQuote(l=>Math.ceil(v.cost*3*Math.pow(1.6,l)),state.fleetLv[v.id],100);
+    const v=FLEET.find(x=>x.id===id), q=purchaseQuote(l=>flvAt(v,l),state.fleetLv[v.id],ECON.flvCap);
     if(!q.enabled){AudioSys.sfx('deny');return;}
     state.credits-=q.total;state.fleetLv[v.id]+=q.qty;AudioSys.sfx('buy');saveGame();buildFleet();
   },
   auto(id){
-    const a=AUTO.find(x=>x.id===id), q=purchaseQuote(l=>Math.ceil(a.base*Math.pow(a.growth,l)),state.auto[a.id],a.max);
+    const a=AUTO.find(x=>x.id===id), q=purchaseQuote(l=>autoAt(a,l),state.auto[a.id],a.max);
     if(!q.enabled){AudioSys.sfx('deny');return;}
     state.credits-=q.total;state.auto[a.id]+=q.qty;AudioSys.sfx('buy');
     if(id==='apilot') toast('AUTOPILOT INSTALLED — toggle it on the Drive screen','reward');
@@ -1671,8 +1831,8 @@ const ACTIONS = {
   },
   routebuy(id){
     const r=ROUTES.find(x=>x.id===id);
-    if(!r||state.routesOwned[id]||state.lifetimeDistance<r.req||state.credits<r.cost){ AudioSys.sfx('deny'); return; }
-    state.credits-=r.cost; state.routesOwned[id]=true; if(r.mult>routeMult()) state.route=id;
+    if(!r||state.routesOwned[id]||state.lifetimeDistance<r.req||state.credits<rc(r)){ AudioSys.sfx('deny'); return; }
+    state.credits-=rc(r); state.routesOwned[id]=true; if(r.mult>routeMult()) state.route=id;
     AudioSys.sfx('buy'); toast('ROUTE UNLOCKED — '+r.name,'reward'); saveGame(); buildRoutes();
   },
   travel(id){
@@ -1682,6 +1842,7 @@ const ACTIONS = {
     R.buildSun(); AudioSys.sfx('notify');
     toast('Timeline shifted — '+TIMELINES[id].name,'event'); saveGame(); buildTimeline();
   },
+  livery(id){ const l=LIVERIES.find(x=>x.id===id); if(!l||(l.req&&!state.ach[l.req])){ AudioSys.sfx('deny'); return; } state.livery=id; AudioSys.sfx('buy'); saveGame(); buildGarage(); },
   dawnbreak(){ doDawnbreak(); },
   off(k){const mx=(k==='rate'?19:46)-state.prestige.echo,base=k==='rate'?1000:800,growth=k==='rate'?1.45:1.14,q=purchaseQuote(l=>Math.ceil(base*Math.pow(growth,l)),state.offUp[k],mx);if(!q.enabled){AudioSys.sfx('deny');return;}state.credits-=q.total;state.offUp[k]+=q.qty;AudioSys.sfx('buy');saveGame();buildFleet();},
   prestigebuy(id){
@@ -1720,8 +1881,8 @@ document.querySelectorAll('.ntab').forEach(t=>t.addEventListener('click',()=>{ A
 /* ---------------- HUD / UI TICKS ---------------- */
 function missionInfo(){
   if(dawnbreakReady())return {title:'DAWNBREAK READY',text:'Reset this run for '+tapeReward()+' permanent Cassette Tape'+(tapeReward()===1?'':'s'),pct:100,tab:'timeline'};
-  const nextR=ROUTES.find(r=>!state.routesOwned[r.id]);if(nextR){ if(state.lifetimeDistance<nextR.req) return {title:'ROUTE UNLOCK',text:nextR.name+' · '+fmt(nextR.req-state.lifetimeDistance)+' km to go',pct:state.lifetimeDistance/nextR.req*100,tab:'routes'}; return {title:'ROUTE READY',text:nextR.name+' · '+fmt(nextR.cost)+' CR to unlock',pct:state.credits/nextR.cost*100,tab:'routes'}; }
-  const nextT=Object.values(TIMELINES).find(t=>t.unlock>state.lifetimeDistance);if(nextT)return {title:'NEW TIMELINE',text:nextT.name+' · '+fmt(nextT.unlock-state.lifetimeDistance)+' km to go',pct:state.lifetimeDistance/nextT.unlock*100,tab:'timeline'};
+  const nextR=ROUTES.find(r=>!state.routesOwned[r.id]);if(nextR){ if(state.lifetimeDistance<nextR.req) return {title:'ROUTE UNLOCK',text:nextR.name+' · '+fmt(nextR.req-state.lifetimeDistance)+' km to go',pct:state.lifetimeDistance/nextR.req*100,tab:'routes'}; return {title:'ROUTE READY',text:nextR.name+' · '+fmt(rc(nextR))+' CR to unlock',pct:state.credits/rc(nextR)*100,tab:'routes'}; }
+  const nextT=Object.values(TIMELINES).find(t=>t.unlock>state.distance);if(nextT)return {title:'NEW TIMELINE',text:nextT.name+' · '+fmt(nextT.unlock-state.distance)+' km to go',pct:state.distance/nextT.unlock*100,tab:'timeline'};
   const milestone=MILESTONES.find(m=>m>state.distance);if(milestone)return {title:'NEXT DISTANCE MARK',text:fmt(milestone-state.distance)+' km to '+fmt(milestone)+' km',pct:state.distance/milestone*100,tab:'drive'};
   return {title:'NIGHT SHIFT',text:'Keep earning, upgrading, and delivering.',pct:100,tab:'fleet'};
 }
@@ -1751,7 +1912,10 @@ function frameHUD(){
   AudioSys.updateEngine();
 }
 function uiTick(){
+  { const tb=el('topbar'); if(tb&&R) R.topInset=tb.offsetHeight||58; }
   document.body.classList.toggle('event-live',!!sim.ev);
+  sim.achT=(sim.achT||0)+.25; if(sim.achT>=1){ sim.achT=0; checkAch(); }
+  { const g=el('btnGoals'); if(g) g.classList.toggle('dot',dailyClaimable()); }
   el('rCred').textContent=fmt(state.credits);
   updateMissionUI(); updatePauseUI();
   el('rInc').textContent=fmt(cachedIncome);
@@ -1776,8 +1940,8 @@ function uiTick(){
   const eb=el('eventBanner');
   if(sim.ev){
     eb.classList.remove('hidden');
-    const names={diner:'NEON DINER', rival:'RIVAL RACER', police:'POLICE PURSUIT'};
-    const descs={diner:'Drive past the diner for rewards', rival:'Avoid all collisions for '+Math.ceil(sim.ev.t)+'s', police:'Survive '+Math.ceil(sim.ev.t)+'s without touching anything'};
+    const names={diner:'NEON DINER', rival:'RIVAL RACER', police:'POLICE PURSUIT', convoy:'PACKAGE CONVOY', blackout:'BLACKOUT'};
+    const descs={diner:'Drive past the diner for rewards', rival:'Avoid all collisions for '+Math.ceil(sim.ev.t)+'s', police:'Survive '+Math.ceil(sim.ev.t)+'s without touching anything', convoy:'Grab convoy crates for '+Math.ceil(sim.ev.t)+'s ('+sim.ev.got+' so far)', blackout:'Income x2 for '+Math.ceil(sim.ev.t)+'s'};
     el('evName').textContent=names[sim.ev.id];
     el('evDesc').textContent=descs[sim.ev.id];
     el('evFill').style.width=(sim.ev.t/sim.ev.dur*100)+'%';
@@ -1849,7 +2013,7 @@ function openAbout(){
 <h3>OVERDRIVE</h3><p>15s of x5 income and faster driving. NOS Booster and Infinite Overdrive improve it. It does not apply offline.</p>
 <h3>EVENTS</h3><ul><li><b>Neon Diner</b>: drive through the lights for credits and x2 income for 30s.</li><li><b>Rival Racer</b>: survive 30s without a collision for credits, reputation and a speed bonus.</li><li><b>Police Pursuit</b>: survive 25s without touching anything. Failing costs income x0.55 for 20s. Credits are never lost.</li></ul>
 <h3>TABS</h3><ul><li><b>Fleet</b>: buy vehicles that earn on their own, level them, and buy automation.</li><li><b>Routes</b>: multiply fleet income. Each needs lifetime distance and a one-time payment, and is re-bought after Dawnbreak.</li><li><b>Garage</b>: upgrade your own car.</li><li><b>Timeline</b>: switch eras, and perform Dawnbreak.</li></ul>
-<h3>DAWNBREAK</h3><p>At 25,000 km you can reset credits, upgrades, fleet, routes and offline upgrades for Cassette Tapes. Spend tapes on permanent upgrades. Tape Echo keeps a floor of offline earnings through every reset. Timelines, tapes, fragments and stats are kept.</p>
+<h3>PRICES</h3><p>Credit prices rise with the sustained income of your current run (the PRICE INDEX on the Fleet and Garage tabs). Permanent boosts, like eras, tapes and achievements, are not counted, so they genuinely speed you up. Dawnbreak resets the index. Income multipliers combine with diminishing returns, so the x values on the Timeline and Routes tabs show the real effect, while per-level percentages on upgrade cards are before that adjustment.</p><h3>GOALS</h3><p>The trophy button opens daily contracts and achievements. Each achievement gives +0.5% income permanently, and some unlock new car paint in the Garage.</p><h3>DAWNBREAK</h3><p>At 25,000 km you can reset credits, upgrades, fleet, routes, offline upgrades and your era for Cassette Tapes. Spend tapes on permanent upgrades. Tape Echo keeps a floor of offline earnings through every reset. Tapes, fragments and stats are kept, but eras reset: you climb them again each run.</p>
 <h3>OFFLINE &amp; SAVING</h3><p>The game saves every 10s and when you leave. While away you earn at your Offline Rate (starts at 5%, upgradeable to 100%) for up to your Offline Cap (starts at 1 hour, upgradeable to 24 hours). Upgrade both in the Fleet tab. Hover or tap any top-bar icon for a tooltip. Settings has Export and Import for backing up your save.</p>`+'</div>'
   +modalBtns([{label:'BACK',fn:openSettings},{label:'CLOSE',cls:'buy',fn:closeModal}]));
 }
@@ -1859,10 +2023,10 @@ function openStats(){
   const rows=[['Credits',fmt(state.credits)],['Income /s',fmt(cachedIncome)],['· Driver',fmt(P.player)],['· Fleet',fmt(P.fleet)],['· Drones',fmt(P.drones)],
   ['Speed',cachedSpeed.toFixed(1)+' km/s'],['Overdrive','x'+odMult().toFixed(1)+' / '+odDuration()+'s'],['Run distance',fmt(state.distance)+' km'],['Lifetime distance',fmt(state.lifetimeDistance)+' km'],
   ['Next milestone',nm?fmt(nm)+' km':'none'],['Deliveries',fmt(state.deliveries)],['Packages',fmt(state.packages)],['Data fragments',fmt(state.fragments)+' (+'+Math.floor(state.fragments)+'%)'],
-  ['Reputation',fmt(Math.floor(state.reputation))+' (+'+(0.5*Math.floor(state.reputation)).toFixed(1)+'%)'],['Fleet vehicles',units],['Garage levels',gl],['Route','x'+routeMult().toFixed(2)],
-  ['Era',TIMELINES[state.timeline].short],['Timelines',state.unlocked.length+'/'+Object.keys(TIMELINES).length],['Offline rate',Math.round(offEff()*100)+'%'],['Offline cap',(offCapS()/3600)+'h'],
+  ['Reputation',fmt(Math.floor(state.reputation))+' (+'+(0.5*Math.floor(state.reputation)).toFixed(1)+'%)'],['Fleet vehicles',units],['Garage levels',gl],['Route','x'+Math.pow(routeMult(),ECON.mulPow).toFixed(2)],
+  ['Era',TIMELINES[state.timeline].short],['Eras (this run / ever)',state.unlocked.length+' / '+Object.keys(state.eraSeen).length+' of '+Object.keys(TIMELINES).length],['Offline rate',Math.round(offEff()*100)+'%'],['Offline cap',(offCapS()/3600)+'h'],
   ['Overdrives used',fmt(state.stats.odUses)],['Close calls',fmt(state.stats.closeCalls)],['Collisions',fmt(state.stats.collisions)],['Events won',fmt(state.stats.eventsWon)],
-  ['Dawnbreaks',fmt(state.prestigeCount)],['Tapes held',state.tapes],['Tapes earned',fmt(state.tapesEarned)],['Playtime',fmtTime(state.stats.playtime)]];
+  ['Dawnbreaks',fmt(state.prestigeCount)],['Achievements',achCount()+'/'+ACH.length],['Daily streak',dailyStreak()+' days'],['Tapes held',state.tapes],['Tapes earned',fmt(state.tapesEarned)],['Playtime',fmtTime(state.stats.playtime)]];
   showModal('<h2>STATISTICS</h2><div class="statgrid">'+rows.map(a=>r(a[0],a[1])).join('')+'</div><h3 class="settings-section">RECENT RUNS · DISTANCE</h3><canvas id="historyChart" width="600" height="120" aria-label="Recent run distances"></canvas><p>'+((state.runHistory||[]).length?state.runHistory.map((x,i)=>'Run '+(i+1)+': '+fmt(x.distance)+' km · +'+x.tapes+' tapes').join(' &nbsp; | &nbsp;'):'Complete a Dawnbreak to start your run history.')+'</p>'+modalBtns([{label:'BACK',fn:openSettings},{label:'CLOSE',cls:'buy',fn:closeModal}]));
   const cv=el('historyChart');if(cv){const g=cv.getContext('2d'),a=(state.runHistory||[]).map(x=>x.distance);g.clearRect(0,0,cv.width,cv.height);g.strokeStyle='#42DCE5';g.lineWidth=3;g.beginPath();const mx=Math.max(1,...a);a.forEach((v,i)=>{const x=16+i*(cv.width-32)/Math.max(1,a.length-1),y=cv.height-16-v/mx*(cv.height-32);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();g.fillStyle='#F9D68A';a.forEach((v,i)=>{const x=16+i*(cv.width-32)/Math.max(1,a.length-1),y=cv.height-16-v/mx*(cv.height-32);g.beginPath();g.arc(x,y,4,0,7);g.fill();});}
 }
@@ -1899,6 +2063,7 @@ function syncFullBtn(){
   const t=FS.on?'Exit fullscreen':'Fullscreen'; b.innerHTML=I[FS.on?'fullExit':'full']; b.title=t; b.setAttribute('aria-label',t); b.setAttribute('aria-pressed',String(FS.on));
 }
 el('btnFull').addEventListener('click',()=>{ AudioSys.unlock(); toggleFullscreen(); });
+el('btnGoals').addEventListener('click',()=>{ AudioSys.unlock(); openGoals(); });
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{ syncFullBtn(); if(typeof R!=='undefined'&&R.resize) R.resize(); }));
 function syncAudioBtn(){ el('btnAudio').innerHTML=icon(state.settings.muted?'speakerOff':'speaker'); }
 el('btnAudio').addEventListener('click',()=>{
@@ -1999,7 +2164,7 @@ function init(){
   // static icons
   el('icCredit').innerHTML=I.credit; el('icBolt').innerHTML=I.bolt;
   el('icBox').innerHTML=I.box; el('icStar').innerHTML=I.star; el('icTape').innerHTML=I.tape;
-  el('btnSettings').innerHTML=I.settings;syncAudioBtn();
+  el('btnSettings').innerHTML=I.settings; el('btnGoals').innerHTML=I.trophy;syncAudioBtn();
   document.querySelectorAll('[data-ic]').forEach(s=>s.innerHTML=I[s.dataset.ic]||'');
   R.init();
   const hadSave=loadGame();
@@ -2024,6 +2189,86 @@ function init(){
     applyOffline();
   }
 }
+/* ---------------- GOALS: achievements, liveries, daily contracts ---------------- */
+const ACH=[]; const A=(id,name,desc,test)=>ACH.push({id,name,desc,test});
+[1e3,1e4,1e5,1e6,1e7,1e8].forEach((d,i)=>A('dist'+i,['First Miles','Long Haul','Century Club','Megamile','Planet Hopper','Beyond the Map'][i],'Drive '+fmt(d)+' km in total.',()=>state.lifetimeDistance>=d));
+[[50,'Handy Courier'],[500,'Parcel Pro'],[5000,'Crate Crusher'],[50000,'Mountain of Boxes']].forEach(([n,nm],i)=>A('pk'+i,nm,'Collect '+fmt(n)+' packages.',()=>state.packages>=n));
+[[100,'On Schedule'],[1000,'Always On Time'],[10000,'Logistics Legend']].forEach(([n,nm],i)=>A('dl'+i,nm,'Complete '+fmt(n)+' deliveries.',()=>state.deliveries>=n));
+[[1,'Eventful'],[10,'Show Runner'],[50,'Highway Star'],[250,'Main Character']].forEach(([n,nm],i)=>A('ev'+i,nm,'Win '+fmt(n)+' highway event'+(n>1?'s':'')+'.',()=>state.stats.eventsWon>=n));
+[[25,'Too Close'],[250,'Needle Threader'],[2500,'Daredevil']].forEach(([n,nm],i)=>A('cc'+i,nm,'Make '+fmt(n)+' close calls.',()=>state.stats.closeCalls>=n));
+[[1,'Full Throttle'],[25,'Afterburner'],[250,'Permanent Redline']].forEach(([n,nm],i)=>A('od'+i,nm,'Use Overdrive '+fmt(n)+' time'+(n>1?'s':'')+'.',()=>state.stats.odUses>=n));
+[[1,'Fleet Founder'],[25,'Motor Pool'],[100,'Convoy Boss'],[500,'Armada']].forEach(([n,nm],i)=>A('fl'+i,nm,'Own '+fmt(n)+' fleet vehicle'+(n>1?'s':'')+' at once.',()=>FLEET.reduce((a,v)=>a+state.fleet[v.id],0)>=n));
+A('allveh','Full Garage','Own every fleet vehicle type at the same time.',()=>FLEET.every(v=>state.fleet[v.id]>0));
+[[3,'Trailblazer'],[9,'Cartographer'],[18,'Every Road']].forEach(([n,nm],i)=>A('ro'+i,nm,'Own '+n+' routes at once.',()=>ROUTES.filter(r=>state.routesOwned[r.id]).length>=n));
+[[2,'Time Traveller'],[3,'Rain Check'],[4,'Corporate Ladder'],[6,'Out of Time']].forEach(([n,nm],i)=>A('tl'+i,nm,'Reach '+n+' different eras (across all runs).',()=>Object.keys(state.eraSeen).length>=n));
+[[1,'New Dawn'],[5,'Cassette Collector'],[15,'Eternal Return']].forEach(([n,nm],i)=>A('pr'+i,nm,'Perform Dawnbreak '+n+' time'+(n>1?'s':'')+'.',()=>state.prestigeCount>=n));
+[[10,'Tape Deck'],[100,'Hoarder']].forEach(([n,nm],i)=>A('tp'+i,nm,'Earn '+n+' Cassette Tapes in total.',()=>state.tapesEarned>=n));
+A('maxone','Maxed Out','Max out any Garage upgrade.',()=>GARAGE.some(u=>state.upgrades[u.id]>=u.max));
+A('tuned','Tuned','Reach 100 total Garage levels.',()=>GARAGE.reduce((a,u)=>a+state.upgrades[u.id],0)>=100);
+A('loaded','Fully Loaded','Reach 300 total Garage levels.',()=>GARAGE.reduce((a,u)=>a+state.upgrades[u.id],0)>=300);
+[[1e6,'Millionaire'],[1e9,'Billionaire'],[1e12,'Trillionaire'],[1e15,'Quadrillionaire']].forEach(([n,nm],i)=>A('cr'+i,nm,'Hold '+fmt(n)+' credits at once.',()=>state.credits>=n));
+[[10,'Data Hoarder'],[50,'Cache Overflow']].forEach(([n,nm],i)=>A('fr'+i,nm,'Collect '+n+' Data Fragments.',()=>state.fragments>=n));
+[[3600,'Settled In','1 hour'],[36000,'Lifer','10 hours']].forEach(([n,nm,t],i)=>A('pt'+i,nm,'Play for '+t+'.',()=>state.stats.playtime>=n));
+[[3,'Regular'],[7,'Weekly Habit'],[30,'Monthly Ritual']].forEach(([n,nm],i)=>A('sk'+i,nm,'Reach a '+n+'-day contract streak.',()=>dailyStreak()>=n));
+A('dream','Dreamer','Reach a 12 hour offline cap.',()=>offCapS()>=43200);
+A('sleep','Sleepwalker','Reach a 50% offline rate.',()=>offEff()>=.5);
+const LIVERIES=[
+  {id:'auto',name:'Auto'},
+  {id:'chrome',name:'Chrome',c1:'#e8ecff',c2:'#8f9cc7'},
+  {id:'rose',name:'Sunset Rose',c1:'#ff9ec7',c2:'#c2417a',req:'dist0'},
+  {id:'gold',name:'Gold Rush',c1:'#ffe27a',c2:'#c28a1d',req:'pk1'},
+  {id:'ghost',name:'Cyan Ghost',c1:'#a8fff4',c2:'#2a8f9a',req:'ev1'},
+  {id:'midnight',name:'Midnight',c1:'#4a3d8f',c2:'#171329',req:'od1'},
+  {id:'toxic',name:'Toxic',c1:'#b6ff4a',c2:'#3d8f1d',req:'fl1'},
+  {id:'ember',name:'Ember',c1:'#ff784f',c2:'#8f1d1d',req:'ro1'},
+  {id:'prism',name:'Prism',c1:'#ffffff',c2:'#7554d9',req:'tl1'},
+  {id:'void',name:'Void',c1:'#1a1a1a',c2:'#8f6bff',req:'pr0'}];
+function liveryHTML(){ return '<h3 class="sect">LIVERIES</h3><div class="liveries">'+LIVERIES.map(l=>{ const ok=!l.req||state.ach[l.req], need=l.req?(ACH.find(a=>a.id===l.req)||{}).name:''; return '<button class="livery'+(state.livery===l.id?' on':'')+'" data-act="livery" data-id="'+l.id+'"'+(ok?'':' disabled')+' style="--c1:'+(l.c1||'#42dce5')+';--c2:'+(l.c2||'#e34fb9')+'"><i></i><span>'+l.name+'</span><small>'+(ok?(state.livery===l.id?'Equipped':'Unlocked'):'Earn: '+need)+'</small></button>'; }).join('')+'</div>'; }
+function achCount(){ let n=0; for(const k in state.ach) n++; return n; }
+function checkAch(){
+  const got=[]; for(const a of ACH){ if(state.ach[a.id]) continue; let ok=false; try{ ok=a.test(); }catch(e){} if(ok){ state.ach[a.id]=true; got.push(a); } }
+  if(!got.length) return;
+  if(got.length<=3) got.forEach(a=>toast('★ ACHIEVEMENT: '+a.name.toUpperCase(),'reward',3500)); else toast('★ '+got.length+' ACHIEVEMENTS UNLOCKED (+'+(got.length*.5)+'% income)','reward',4500);
+  AudioSys.sfx('success'); saveGame();
+}
+const DAILY_POOL=[
+  {id:'pk',name:'Courier Rush',unit:'packages',stat:()=>state.packages,goal:t=>[20,30,45,70,100,140][t]},
+  {id:'km',name:'Long Haul',unit:'km',stat:()=>state.lifetimeDistance,goal:()=>Math.round(Math.max(200,calcSpeedPure()*240))},
+  {id:'ev',name:'Show Time',unit:'events won',stat:()=>state.stats.eventsWon,goal:t=>[1,2,2,3,3,4][t]},
+  {id:'od',name:'Full Send',unit:'Overdrives',stat:()=>state.stats.odUses,goal:t=>[1,2,2,3,3,4][t]},
+  {id:'cc',name:'Needle Thread',unit:'close calls',stat:()=>state.stats.closeCalls,goal:t=>[5,8,12,16,20,25][t]},
+  {id:'dl',name:'On Time',unit:'deliveries',stat:()=>state.deliveries,goal:t=>[10,15,20,30,40,50][t]}];
+function dayKey(d){ d=d||new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dailyTier(){ return Math.max(0,Math.min(5,Math.floor(Math.log10(Math.max(1,state.lifetimeDistance)))-2)); }
+function ensureDaily(){
+  const k=dayKey(), D=state.daily; if(D.date===k&&D.tasks.length===3) return;
+  let seed=0; for(const ch of k) seed=(seed*31+ch.charCodeAt(0))>>>0;
+  const rnd=()=>{ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; };
+  const pool=DAILY_POOL.slice(), p3=[]; while(p3.length<3) p3.push(pool.splice(Math.floor(rnd()*pool.length),1)[0]);
+  const t=dailyTier(); D.date=k; D.tasks=p3.map(p=>({id:p.id,goal:Math.max(1,Math.round(p.goal(t))),base:p.stat(),claimed:false})); saveGame();
+}
+function dailyStreak(){ const y=new Date(); y.setDate(y.getDate()-1); const L=state.daily.last; return (L===dayKey()||L===dayKey(y))?state.daily.streak:0; }
+function dailyProg(i){ const t=state.daily.tasks[i], p=DAILY_POOL.find(x=>x.id===t.id); return Math.max(0,Math.min(t.goal,Math.floor(p.stat()-t.base))); }
+function dailyReady(i){ const t=state.daily.tasks[i]; return !!t&&!t.claimed&&dailyProg(i)>=t.goal; }
+function dailyClaimable(){ ensureDaily(); return state.daily.tasks.some((t,i)=>dailyReady(i)); }
+function claimDaily(i){
+  ensureDaily(); if(!dailyReady(i)){ AudioSys.sfx('deny'); return; }
+  const D=state.daily; D.tasks[i].claimed=true;
+  const k=dayKey(); if(D.last!==k){ const y=new Date(); y.setDate(y.getDate()-1); D.streak=(D.last===dayKey(y))?D.streak+1:1; D.last=k; if(D.streak%7===0){ state.tapes++; state.tapesEarned++; toast('★ '+D.streak+'-DAY STREAK: +1 CASSETTE TAPE','reward',5000); } }
+  const cr=Math.max(5000,cachedParts.base*900*(1+0.1*Math.min(30,D.streak))); state.credits+=cr; gainRep(2); toast('CONTRACT PAID +'+fmt(cr)+' CR','reward');
+  if(D.tasks.every(x=>x.claimed)){ sim.boosts.push({name:'DAILY BONUS',mult:2,t:600}); toast('ALL CONTRACTS DONE — income x2 for 10 minutes','reward',5000); }
+  AudioSys.sfx('success'); saveGame();
+}
+function openGoals(){
+  ensureDaily(); const old=document.querySelector('#modalRoot .mbox'), top=old?old.scrollTop:0, D=state.daily, st=dailyStreak();
+  let h='<h2>GOALS</h2><h3 class="sect" style="margin-top:6px">DAILY CONTRACTS · STREAK '+st+'</h3><p class="snote">New contracts every day. Finish all three for x2 income for 10 minutes. Claim on 7 days in a row for a Cassette Tape.</p>';
+  D.tasks.forEach((t,i)=>{ const p=DAILY_POOL.find(x=>x.id===t.id), pr=dailyProg(i); h+='<div class="row goalrow"><div class="rinfo"><h4>'+p.name+(t.claimed?' <em>CLAIMED</em>':'')+'</h4><p>'+fmt(t.goal)+' '+(t.goal===1?({'packages':'package','events won':'event won','Overdrives':'Overdrive','close calls':'close call','deliveries':'delivery'})[p.unit]||p.unit:p.unit)+'</p><div class="unlock-progress"><i style="width:'+(pr/t.goal*100)+'%"></i></div><p class="reff">'+fmt(pr)+' / '+fmt(t.goal)+'</p></div><div>'+(t.claimed?'':'<button class="btn buy" data-claim="'+i+'"'+(dailyReady(i)?'':' disabled')+'>CLAIM</button>')+'</div></div>'; });
+  h+='<h3 class="sect">ACHIEVEMENTS · '+achCount()+'/'+ACH.length+' · +'+(achCount()*.5).toFixed(1)+'% INCOME</h3><div class="achgrid">'+ACH.map(a=>'<div class="ach'+(state.ach[a.id]?' got':'')+'"><b>'+(state.ach[a.id]?'★ ':'☆ ')+a.name+'</b><span>'+a.desc+'</span></div>').join('')+'</div><div class="sbtns" style="margin-top:12px"><button class="btn buy" data-sa="close">CLOSE</button></div>';
+  showModal(h); const m=document.getElementById('modalRoot');
+  m.querySelectorAll('[data-claim]').forEach(b=>b.addEventListener('click',()=>{ claimDaily(+b.dataset.claim); openGoals(); }));
+  m.querySelector('[data-sa=close]').addEventListener('click',closeModal); const nb=m.querySelector('.mbox'); if(nb) nb.scrollTop=top;
+}
+
 (function setupTips(){
   const tipEl=document.createElement('div'); tipEl.id='tip'; document.body.appendChild(tipEl);
   const T=(n,t,nt)=>{ const e=typeof n==='string'?el(n):n; if(!e) return; const h=e.closest('.res')||e; h.dataset.tip=t; if(nt) h.classList.add('notap'); };
@@ -2042,7 +2287,7 @@ function init(){
   T('odBar','OVERDRIVE METER: at 100% you can engage x5 income and extra speed.');
   T('hAuto','AUTOPILOT: dodges traffic and grabs packages. Click to toggle.',1);
   T('hAutoOd','AUTO OVERDRIVE: fires Overdrive as soon as the meter is full. Click to toggle.',1);
-  T('btnFull','FULLSCREEN: hides the browser bars. Shortcut: F.',1); T('btnAudio','SOUND: mute or unmute.',1); T('btnSettings','SETTINGS: audio, statistics, about, save backup.',1);
+  T('btnFull','FULLSCREEN: hides the browser bars. Shortcut: F.',1); T('btnGoals','GOALS: daily contracts and achievements.',1); T('btnAudio','SOUND: mute or unmute.',1); T('btnSettings','SETTINGS: audio, statistics, about, save backup.',1);
   let tt;
   function showTip(t){ tipEl.textContent=t.dataset.tip; tipEl.style.display='block'; const r=t.getBoundingClientRect(),w=tipEl.offsetWidth,h=tipEl.offsetHeight; let x=Math.max(6,Math.min(innerWidth-w-6,r.left+r.width/2-w/2)),y=r.bottom+8; if(y+h>innerHeight-6) y=r.top-h-8; tipEl.style.left=x+'px'; tipEl.style.top=Math.max(6,y)+'px'; }
   const hide=()=>{ tipEl.style.display='none'; };
