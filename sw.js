@@ -1,5 +1,5 @@
 /* OutRun Delivery service worker: caches the game so it runs with no connection (e.g. airplane mode). */
-const VERSION = 'outrun-v1';
+const VERSION = 'outrun-v2';
 const ESSENTIAL = ['./', 'index.html', 'styles.css', 'game.js'];
 const OPTIONAL = ['manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
