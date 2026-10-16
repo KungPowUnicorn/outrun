@@ -396,3 +396,17 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:6px
 .net-badge.off{color:#ffb347;opacity:.95}
 @media (max-width:760px){.net-badge .nb-t{display:none}.net-badge{padding:6px}}
 .slrow>b:empty{display:none}.slrow select{grid-column:2/-1;min-width:0}
+
+/* ===== goals, achievements, liveries ===== */
+.row.goalrow{grid-template-columns:1fr auto}
+.achgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.ach{border:1px solid rgba(117,84,217,.3);background:rgba(23,19,41,.5);padding:7px 9px;opacity:.55}
+.ach.got{opacity:1;border-color:var(--sunset);background:rgba(255,120,79,.07)}
+.ach b{display:block;font:700 10.5px var(--font-n);letter-spacing:1px;color:var(--cyan)}.ach.got b{color:var(--sunset)}
+.ach span{display:block;font-size:12px;opacity:.8;margin-top:2px}
+.liveries{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.livery{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:8px 10px;background:rgba(23,19,41,.6);border:1px solid rgba(117,84,217,.4);color:var(--tx);cursor:pointer;min-height:64px}
+.livery i{width:100%;height:12px;background:linear-gradient(90deg,var(--c1),var(--c2));border:1px solid rgba(255,255,255,.25)}
+.livery span{font:700 10px var(--font-n);letter-spacing:1px}.livery small{font-size:11px;opacity:.7}
+.livery.on{border-color:var(--cyan);box-shadow:0 0 10px rgba(66,220,229,.35)}.livery:disabled{opacity:.4;cursor:not-allowed}
+.ibtn.dot{position:relative}.ibtn.dot::after{content:'';position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--sunset);box-shadow:0 0 8px var(--sunset)}
