@@ -233,8 +233,8 @@ function defaultState(){
     prestige:{analog:0,odinf:0,workforce:0,nav:0,temporal:0,echo:0,headstart:0,harvest:0,luck:0,showtime:0,memory:0,coldstart:0},
     settings:{master:0.8, music:0.55, sfx:0.8, engine:0.65, muted:false,
       reduced: window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches,
-      pauseMenus:false, pauseBackground:false, highContrast:false, reduceFlashes:false, speedStreaks:true, scanlines:true, glowEffects:true, uiScale:1, controls:'swipe', palette:'sunset', dayNight:true, track:'auto', trackMinutes:3, pickupGuides:true},
-    stats:{playtime:0, odUses:0, eventsWon:0, closeCalls:0, collisions:0},
+      pauseMenus:false, pauseBackground:false, highContrast:false, reduceFlashes:false, speedStreaks:true, scanlines:true, glowEffects:true, uiScale:1, controls:'swipe', palette:'sunset', dayNight:true, track:'auto', trackMinutes:3, pickupGuides:true, quality:'auto', showFps:false, haptics:true, reflections:true},
+    stats:{playtime:0, odUses:0, eventsWon:0, closeCalls:0, collisions:0, bestChain:0, eventsLost:0},
     tod:0.3, tutorialDone:false, runHistory:[], newTL:false,
     lastSavedAt:Date.now(),
   };
@@ -277,10 +277,11 @@ function sanitize(d){
   s.tod=s.tod%1;
   if(d.offUp&&typeof d.offUp==='object'){ s.offUp.rate=clamp(Math.floor(+d.offUp.rate)||0,0,19); s.offUp.cap=clamp(Math.floor(+d.offUp.cap)||0,0,46); }
   if(d.settings){
-    for(const k of ['pauseMenus','pauseBackground','highContrast','reduceFlashes','speedStreaks','scanlines','glowEffects','dayNight','pickupGuides']) if(typeof d.settings[k]==='boolean') s.settings[k]=d.settings[k];
+    for(const k of ['pauseMenus','pauseBackground','highContrast','reduceFlashes','speedStreaks','scanlines','glowEffects','dayNight','pickupGuides','showFps','haptics','reflections']) if(typeof d.settings[k]==='boolean') s.settings[k]=d.settings[k];
     if(typeof d.settings.uiScale==='number'&&isFinite(d.settings.uiScale)) s.settings.uiScale=clamp(d.settings.uiScale,0.85,1.25);
     if(['swipe','buttons','tap'].includes(d.settings.controls)) s.settings.controls=d.settings.controls;
     if(['sunset','ocean','arcade','mono'].includes(d.settings.palette)) s.settings.palette=d.settings.palette;
+    if(['auto','high','medium','low'].includes(d.settings.quality)) s.settings.quality=d.settings.quality;
     if(d.settings.track==='auto'||d.settings.track==='shuffle'||(typeof d.settings.track==='string'&&TRACKS[d.settings.track])) s.settings.track=d.settings.track;
     s.settings.trackMinutes=typeof d.settings.trackMinutes==='number'&&isFinite(d.settings.trackMinutes)?clamp(Math.round(d.settings.trackMinutes),1,30):3;
   }
@@ -303,7 +304,7 @@ function wipeSave(){ try{ localStorage.removeItem(CONFIG.saveKey); }catch(e){} }
 const sim = {
   travel:0, curve:0, lanePos:1, target:1,
   traffic:[], packages:[], scenery:[], floats:[], particles:[], boosts:[],
-  rival:null, policeCar:null, ev:null, evCd:55, sirenT:0, paused:false, regionStep:null, tod:0.3, phase:null,
+  rival:null, policeCar:null, ev:null, evCd:55, sirenT:0, paused:false, regionStep:null, tod:0.3, phase:null, chain:0, chainT:0, jailT:0,
   trafficT:2.5, pkgT:2, nextSc:200, nextGate:600,
   od:{charge:0, active:false, t:0},
   deliverT:0, autoT:0, clock:0,
@@ -396,6 +397,7 @@ function calcIncome(){ return cachedParts.base*boostMult()*(sim.od.active?odMult
 function spdMul(){ return (1+ECON.gear*state.upgrades.gearbox)*(1+ECON.ocSpd*state.auto.overclock); }
 function delivInt(){ return CONFIG.deliveryInterval*Math.pow(.97,state.upgrades.racks); }
 function calcSpeed(){
+  if(sim.jailT>0) return 0;
   let s=(ECON.baseSpd+ECON.turbo*state.upgrades.turbo)*spdMul();
   if(sim.od.active) s*=1.5;
   for(const b of sim.boosts) if(b.speed) s*=b.speed;
@@ -556,13 +558,13 @@ function activateOD(){
   if(sim.od.active || sim.od.charge<CONFIG.od.chargeMax) { if(sim.od.charge<100) AudioSys.sfx('deny'); return; }
   sim.od.charge=0; sim.od.active=true; sim.od.t=odDuration();
   state.stats.odUses++;
-  AudioSys.sfx('od'); document.body.classList.add('od');
+  AudioSys.sfx('od'); buzz([40,30,70]); document.body.classList.add('od');
   floatText(R.W/2, R.H*0.55, 'OVERDRIVE x'+odMult().toFixed(1), '#E34FB9');
 }
 
 /* ---------------- FLOATING TEXT ---------------- */
 function floatText(x,y,txt,color){ sim.floats.push({x,y,txt,color,t:1,age:0,seed:Math.random()}); }
-function emitBurst(x,y,color,count=8){if(reducedMotion())return;for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2,v=28+Math.random()*105;sim.particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-22,life:.45+Math.random()*.5,max:.95,color,r:1.2+Math.random()*2.4});}}
+function emitBurst(x,y,color,count=8){if(reducedMotion())return;count=Math.max(1,Math.ceil(count*[1,.6,.3][Q.tier||0]));for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2,v=28+Math.random()*105;sim.particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-22,life:.45+Math.random()*.5,max:.95,color,r:1.2+Math.random()*2.4});}}
 function worldToScreen(z,wx){ return {x:R.sxAt(z,wx), y:R.sy(z), s:R.f/z}; }
 
 /* ---------------- GAMEPLAY EVENTS ---------------- */
@@ -572,7 +574,7 @@ function eventBeat(id,phase,detail=''){
   el('eventTransitionIcon').textContent=icons[id]||'✦';
   const titles=phase==='start'?{diner:'PIT STOP AHEAD',rival:'CHALLENGER DETECTED',police:'PURSUIT ENGAGED',convoy:'CONVOY INBOUND',blackout:'GRID FAILURE'}:{success:'EVENT CLEARED',failed:'EVENT FAILED',reward:'PIT STOP REWARD'};
   el('eventTransitionTitle').textContent=titles[phase]||names[id]||'EVENT';
-  el('eventTransitionText').textContent=detail||({diner:'Find the glowing diner on the roadside.',rival:'Hold your nerve. Make it through clean.',police:'Keep clear of traffic until the sirens fade.',convoy:'Grab every crate you can before the convoy passes.',blackout:'The grid is down. Drive by headlight. Income doubled.'}[id]||'');
+  el('eventTransitionText').textContent=detail||({diner:'Find the glowing diner on the roadside.',rival:'Make it through clean. Crash and you lose the wager.',police:'Keep clear of traffic. Get caught and you are impounded.',convoy:'Grab every crate you can before the convoy passes.',blackout:'The grid is down. Drive by headlight. Income doubled.'}[id]||'');
   clearTimeout(box._hideTimer);requestAnimationFrame(()=>box.classList.add('show'));
   box._hideTimer=setTimeout(()=>box.classList.remove('show'),phase==='start'?1900:1500);
 }
@@ -582,7 +584,7 @@ function startEvent(){
     sim.scenery.push({type:'diner', abs:sim.travel+1300, side:1, off:14, seed:Math.random(), used:false});
     sim.ev={id, t:70, dur:70};
   } else if(id==='rival'){
-    sim.ev={id, t:30, dur:30};
+    sim.ev={id, t:30, dur:30, bet:Math.floor(Math.min(state.credits*0.05,cachedParts.base*180))};
     sim.rival={z:420, lane:1, laneF:0, laneT:1.5, tgt:170, flee:false, crashT:0, crashes:0, skill:rand(.6,.85), dead:false};
   } else if(id==='convoy'){
     sim.ev={id, t:20, dur:20, got:0, waveT:0};
@@ -618,16 +620,16 @@ function rivalCrash(i){
 }
 function rivalWreck(){
   if(!sim.ev||sim.ev.id!=='rival') return;
-  const cr=cachedParts.base*105*evMult(); state.credits+=cr; gainRep(8); sim.boosts.push({name:'RACER MOMENTUM',mult:1,speed:1.25,t:20});
+  const cr=cachedParts.base*105*evMult()+(sim.ev.bet||0); state.credits+=cr; gainRep(8); sim.boosts.push({name:'RACER MOMENTUM',mult:1,speed:1.25,t:20});
   floatText(R.W/2,R.H*.5,'RIVAL WRECKED +'+fmt(cr)+' CR','#FF784F'); emitBurst(R.W/2,R.H*.5,'#ff784f',18);
-  state.stats.eventsWon++; AudioSys.sfx('success'); eventBeat('rival','success','Rival wrecked in traffic · early finish bonus.'); toast('RIVAL WRECKED — early finish bonus','reward');
+  state.stats.eventsWon++; AudioSys.sfx('success'); buzz([30,40,30]); eventBeat('rival','success','Rival wrecked in traffic · early finish bonus.'); toast('RIVAL WRECKED — early finish bonus','reward');
   endEvent(); if(sim.rival){ sim.rival.flee=false; sim.rival.dead=true; sim.rival.tgt=20; sim.rival.crashT=9; }
 }
 function eventSuccess(){
   const eventId=sim.ev.id;
   const inc=cachedParts.base*evMult();
   if(sim.ev.id==='rival'){
-    const cr=inc*70; state.credits+=cr; gainRep(6);
+    const cr=inc*70+(sim.ev.bet||0); state.credits+=cr; gainRep(6);
     sim.boosts.push({name:'RACER MOMENTUM', mult:1, speed:1.25, t:20});
     floatText(R.W/2,R.H*0.5,'RIVAL DEFEATED +'+fmt(cr)+' CR','#FF784F');
   } else if(sim.ev.id==='convoy'){ const cr=inc*(25+sim.ev.got*8); state.credits+=cr; gainRep(4); floatText(R.W/2,R.H*0.5,'CONVOY: '+sim.ev.got+' CRATES +'+fmt(cr)+' CR','#42DCE5');
@@ -637,22 +639,29 @@ function eventSuccess(){
     floatText(R.W/2,R.H*0.5,'GOT AWAY +'+fmt(cr)+' CR','#42DCE5');
   }
   emitBurst(R.W/2,R.H*.5, eventId==='rival'?'#ff784f':'#42dce5',14);
-  state.stats.eventsWon++; AudioSys.sfx('success');
+  state.stats.eventsWon++; AudioSys.sfx('success'); buzz([30,40,30]);
   eventBeat(eventId,'success',eventId==='rival'?'Rival beaten · clean driving bonus secured.':'Payout secured · the road is yours again.');
   toast('EVENT COMPLETE — rewards delivered','reward');
   endEvent();
 }
 function eventFail(){
   if(!sim.ev || ['diner','convoy','blackout'].includes(sim.ev.id)) return;
-  const eventId=sim.ev.id;
-  if(sim.ev.id==='rival'){
-    const cr=cachedParts.base*15; state.credits+=cr;
-    floatText(R.W/2,R.H*0.5,'RACE LOST +'+fmt(cr)+' CR','#FF5D7A');
+  const eventId=sim.ev.id; let detail;
+  state.stats.eventsLost=(state.stats.eventsLost||0)+1;
+  if(eventId==='rival'){
+    // you lose the wager, plus the repair bill is folded into it
+    const lost=Math.min(state.credits,sim.ev.bet||0); state.credits-=lost;
+    floatText(R.W/2,R.H*0.5,lost>0?'BET LOST −'+fmt(lost)+' CR':'RACE LOST','#FF5D7A');
+    detail=lost>0?'You crashed out. The wager is gone: −'+fmt(lost)+' CR.':'You crashed out. No wager was on the table.';
+    toast(lost>0?'RACE LOST — paid out '+fmt(lost)+' CR':'RACE LOST','warn',3500);
   } else {
+    const km=jail();
     sim.boosts.push({name:'HEAT COOLDOWN', mult:0.55, t:20});
-    floatText(R.W/2,R.H*0.5,'BUSTED — INCOME x0.55','#FF5D7A');
+    floatText(R.W/2,R.H*0.5,'IMPOUNDED −'+fmt(km)+' KM','#FF5D7A');
+    detail='Busted. The car is impounded for 5s and you lost '+fmt(km)+' km of this run.';
+    toast('BUSTED — impounded 5s, −'+fmt(km)+' km, income x0.55 for 20s','warn',4500);
   }
-  emitBurst(R.W/2,R.H*.5,'#ff5d7a',10);AudioSys.sfx('fail');eventBeat(eventId,'failed',eventId==='rival'?'Collision ended the race. Keep the consolation payout.':'Traffic contact broke the pursuit run.');endEvent();
+  emitBurst(R.W/2,R.H*.5,'#ff5d7a',10);AudioSys.sfx('fail');buzz([120,60,120]);eventBeat(eventId,'failed',detail);endEvent();
 }
 function dinerReward(){
   if(!sim.ev||sim.ev.id!=='diner') return;
@@ -678,7 +687,7 @@ function updateEvents(dt){
 
 /* ---------------- COLLISIONS / PICKUPS ---------------- */
 function onCollision(){
-  sim.invulnT=1.4; sim.collisionT=3; sim.shakeT=0.5;
+  sim.invulnT=1.4; sim.collisionT=3; sim.shakeT=0.5; chainBreak(); buzz([60,30,90]);
   state.stats.collisions++;
   AudioSys.sfx('crash');
   if(!state.settings.reduceFlashes&&!reducedMotion()){const v=el('vignette');v.classList.add('hitflash');setTimeout(()=>v.classList.remove('hitflash'),320);}
@@ -690,7 +699,7 @@ function closeCallCheck(c){
   if(lc && c.lane===lc.from && sim.clock-lc.t<1.0){
     sim.od.charge=Math.min(100,sim.od.charge+4);
     const cr=cachedParts.base*0.8; state.credits+=cr;
-    state.stats.closeCalls++;
+    state.stats.closeCalls++; chainAdd(1); buzz(18);
     floatText(R.W/2, R.H*0.66, 'CLOSE CALL +'+fmt(cr), '#42DCE5');
     AudioSys.sfx('collect');
   }
@@ -703,6 +712,7 @@ function collectPackage(p, scr){
   else if(p.type==='rush'){ cr=inc*7.5*gm; state.packages++; msg='RUSH +'+fmt(cr); color='#FF784F'; }
   else if(p.type==='energy'){ sim.od.charge=Math.min(100,sim.od.charge+8+state.upgrades.cells); cr=inc*0.8*gm; msg='+ENERGY CELL'; color='#7DF3EF'; }
   else { cr=inc*30*gm; state.packages++; state.fragments++; gainRep(2); msg='DATA FRAGMENT +1'; color='#E34FB9'; }
+  cr*=chainMult()*riskMult(); chainAdd(1); buzz(12);
   state.credits+=cr;
   floatText(scr.x, scr.y-30, msg, color);
   emitBurst(scr.x,scr.y-6,color,p.type==='rare'?12:7);
@@ -746,10 +756,11 @@ function autoThink(){
 function spawnStuff(dt){
   sim.trafficT-=dt;
   const dens = (sim.ev&&sim.ev.id==='rival'?1.9 : sim.ev&&sim.ev.id==='police'?2.3 : 1)*(TIMELINES[state.timeline].traffic||1);
-  if(sim.trafficT<=0 && sim.traffic.length<16){
-    sim.trafficT=rand(1.5,2.6)/dens;
+  if(sim.trafficT<=0 && sim.traffic.length<16+Math.round(12*danger())){
+    sim.trafficT=rand(1.5,2.6)/(dens*(1+0.9*danger()));
     const tl=visualTimeline(undefined,true),types=(isCityEnv(tl.env)||tl.env==='quantum')?['sedan','sedan','van','truck','bike','sport','wagon','hover']:['sedan','sedan','van','truck','bike','sport','wagon','pickup'];
-    const ty=pick(types),spd=ty==='bike'?rand(40,56):(['sport','hover'].includes(ty)?rand(48,66):['truck','pickup'].includes(ty)?rand(18,30):rand(24,38));
+    let ty=pick(types); if(danger()>.25&&Math.random()<0.2*danger()) ty='barrier';
+    const spd=ty==='barrier'?0:ty==='bike'?rand(40,56):(['sport','hover'].includes(ty)?rand(48,66):['truck','pickup'].includes(ty)?rand(18,30):rand(24,38));
     // never spawn an unavoidable 3-lane wall: skip lanes where both other lanes already have a car arriving within ~1.1s of this one
     const vN=visSpeed(), arr=(z,sp)=>(z-60)/Math.max(1,vN-sp), tn=arr(2200,spd);
     const free=[0,1,2].filter(L=>[0,1,2].filter(l=>l!==L&&sim.traffic.some(c=>c.lane===l&&c.z>40&&Math.abs(arr(c.z,c.spd)-tn)<1.1)).length<2);
@@ -850,6 +861,8 @@ function update(dt){
   if(!isFinite(state.credits)) state.credits=0;
   state.stats.playtime+=dt;
   sim.clock+=dt;
+  if(sim.chain>0){ sim.chainT-=dt; if(sim.chainT<=0) sim.chain=0; }
+  if(sim.jailT>0) sim.jailT-=dt;
   if(state.settings.dayNight){ sim.tod=(sim.tod+dt/DAY_LEN)%1; const ph=dayFactor()>.5; if(sim.phase===null) sim.phase=ph; else if(ph!==sim.phase){ sim.phase=ph; toast(ph?'☀ SYNTHWAVE DAY':'☾ VAPORWAVE NIGHT','event',2600); } }
   cachedParts=calcIncomeParts();
   cachedIncome=calcIncome();
@@ -918,7 +931,7 @@ const R = {
   },
   resize(){
     document.body.classList.toggle('landscape',innerWidth>innerHeight);
-    this.DPR=Math.min(devicePixelRatio||1,2);
+    this.DPR=Math.min(devicePixelRatio||1,[2,1.5,1][Q.tier||0]);
     this.W=innerWidth; this.H=innerHeight;
     this.cv.width=this.W*this.DPR; this.cv.height=this.H*this.DPR;
     this.cv.style.width=this.W+'px'; this.cv.style.height=this.H+'px';
@@ -983,6 +996,7 @@ const R = {
     if(tl.env==='coast')this.drawWater(g,tl,t);
     this.drawGrid(g,tl);
     this.drawRoad(g,tl);
+    this.drawReflections(g,tl,t);
     // world objects far -> near
     this.drawWorld(g,tl,t,dt);
     this.drawPlayer(g,tl,t);
@@ -1135,7 +1149,7 @@ const R = {
     g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.lineTo(x3,y3); g.lineTo(x4,y4); g.closePath(); g.fill();
   },
   drawRoad(g,tl){
-    const zs=[]; for(let z=2200; z>26; z*=0.87) zs.push(z); zs.push(26);
+    const zs=[]; for(let z=2200, st=[.87,.83,.77][Q.tier||0]; z>26; z*=st) zs.push(z); zs.push(26);
     for(let i=zs.length-1;i>=1;i--){
       const zF=zs[i], zN=zs[i-1];
       const yF=this.sy(zF), yN=this.sy(zN);
@@ -1374,11 +1388,29 @@ const R = {
     drawCarRear(g,0,0,s,{c1:paint[0],c2:paint[1],type:'sedan',spoiler:true,brake:sim.collisionT>0,od:sim.od.active,player:true,upgrades:state.upgrades});
     g.restore();
   },
+  drawReflections(g,tl,t){
+    if(Q.tier>0||!state.settings.reflections) return;
+    const W=this.W,H=this.H,hY=this.horizonY, wet=(tl.weather==='rain'?1:tl.weather==='mist'?.7:.5)*(1-(tl.day||0)*.6);
+    if(wet<=.05) return;
+    // sun / horizon column
+    const vpX=W/2+this.curveOff(2200)*this.f/2200, w0=W*.025, w1=W*.16;
+    g.save(); g.beginPath(); g.moveTo(vpX-w0,hY+2); g.lineTo(vpX+w0,hY+2); g.lineTo(W/2+w1,H); g.lineTo(W/2-w1,H); g.closePath(); g.clip();
+    const gr=g.createLinearGradient(0,hY,0,H); gr.addColorStop(0,tl.sun[1]); gr.addColorStop(1,'rgba(0,0,0,0)');
+    g.globalAlpha=.2*wet; g.fillStyle=gr; g.fillRect(0,hY,W,H-hY);
+    g.fillStyle='#000'; for(let i=0;i<16;i++){ const y=hY+Math.pow(i/16,1.8)*(H-hY), hh=(1+i*.9)*(1+Math.sin(t*1.5+i)*.3); g.globalAlpha=.2*wet*(.5+.5*Math.sin(t*2+i)); g.fillRect(0,y,W,hh); }
+    g.restore();
+    // neon gate pillars, traffic tail lights and the player's tail lights smear into the wet road
+    const smear=(x,y,w,len,c,a)=>{ const grd=g.createLinearGradient(0,y,0,y+len); grd.addColorStop(0,c); grd.addColorStop(1,'rgba(0,0,0,0)'); g.globalAlpha=a; g.fillStyle=grd; g.fillRect(x-w/2,y,w,len); };
+    for(const sc of sim.scenery){ if(sc.type!=='gate') continue; const z=sc.abs-sim.travel; if(z<60||z>1400) continue; const k=this.f/z,y=this.sy(z),fade=Math.min(1,(1400-z)/500); for(const wx of [-8.6,8.6]) smear(this.sxAt(z,wx),y,k*.7,Math.min(H-y,6*k),tl.edge,.22*wet*fade); }
+    let n=0; for(const c of sim.traffic){ if(c.z>700||c.z<30||n++>7) continue; const k=this.f/c.z,x=this.sxAt(c.z,(c.lane-1)*4.5),y=this.sy(c.z); for(const dx of [-.55,.55]) smear(x+dx*k,y,k*.24,k*1.6,'#ff2d55',.32*wet); }
+    { const k=this.f/60,x=this.sxAt(60,(sim.lanePos-1)*4.5),y=this.sy(60); for(const dx of [-.6,.6]) smear(x+dx*k,y,k*.26,k*1.8,'#ff2d55',.4*wet); }
+    g.globalAlpha=1;
+  },
   drawWeather(g,t,tl){
     if(reducedMotion()||tl.weather==='clear')return;const W=this.W,H=this.H,hY=this.horizonY;
     if(tl.weather==='rain'){
       g.strokeStyle=state.settings.palette==='mono'?'rgba(230,230,240,.28)':'rgba(133,220,255,.34)';g.lineWidth=1;
-      for(let i=0;i<42;i++){const x=hash1(i*13.7)*W,y=hY+((hash1(i*3.2)*H+(t*360+i*29))%(H-hY));g.beginPath();g.moveTo(x,y);g.lineTo(x-5,y+13);g.stroke();}
+      for(let i=0,n=[42,28,14][Q.tier||0];i<n;i++){const x=hash1(i*13.7)*W,y=hY+((hash1(i*3.2)*H+(t*360+i*29))%(H-hY));g.beginPath();g.moveTo(x,y);g.lineTo(x-5,y+13);g.stroke();}
     }else if(tl.weather==='dust'){
       for(let i=0;i<24;i++){const x=hash1(i*7.31+t*.06)*W,y=hY+((hash1(i*9.7)*H+t*42)%(H-hY));g.globalAlpha=.08+hash1(i*2.3)*.12;g.fillStyle='#e9a276';g.beginPath();g.ellipse(x,y,10+hash1(i)*20,1.4,0,0,7);g.fill();}
     }else if(tl.weather==='mist'){
@@ -1432,6 +1464,13 @@ function roundRect(g,x,y,w,h,r){
   g.closePath();
 }
 function drawCarRear(g,x,y,s,o){
+  if(o.type==='barrier'){
+    g.fillStyle='rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(x,y,1.5*s,.2*s,0,0,7); g.fill();
+    for(let i=0;i<6;i++){ g.fillStyle=i%2?'#ffb347':'#171329'; g.fillRect(x-1.45*s+i*.4833*s,y-1.0*s,.4833*s,.55*s); }
+    g.fillStyle='#ff784f'; g.fillRect(x-1.3*s,y-.45*s,.14*s,.45*s); g.fillRect(x+1.16*s,y-.45*s,.14*s,.45*s);
+    if(state.settings.glowEffects){ g.shadowColor='#ffb347'; g.shadowBlur=Math.min(12,s); }
+    g.fillStyle='#ffd27a'; g.beginPath(); g.arc(x,y-1.15*s,.12*s,0,7); g.fill(); g.shadowBlur=0; return;
+  }
   if(o.type==='bike'){
     g.fillStyle='rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(x,y,.55*s,.16*s,0,0,7); g.fill();
     g.fillStyle='#0a0716'; g.fillRect(x-.1*s,y-.7*s,.2*s,.7*s);
@@ -1899,6 +1938,8 @@ function nextHint(){
 }
 let lastSpeedTxt='';
 function frameHUD(){
+  { const cb=el('chainBox'); if(cb){ const on=sim.chain>=2; cb.classList.toggle('hidden',!on); if(on){ el('chainN').textContent='CHAIN x'+sim.chain; el('chainBonus').textContent='+'+Math.round((chainMult()-1)*100)+'% PICKUPS'; el('chainFill').style.width=clamp(sim.chainT/7*100,0,100)+'%'; } }
+    const hb=el('heatBadge'); if(hb){ const t='ROAD: '+dangerLabel()+' · +'+Math.round(danger()*50)+'% PAY'; if(hb.textContent!==t) hb.textContent=t; } }
   document.body.classList.toggle('od',sim.od.active);
   const spd=cachedSpeed.toFixed(1);
   if(spd!==lastSpeedTxt){ el('hSpeed').textContent=spd; lastSpeedTxt=spd; }
@@ -1941,7 +1982,7 @@ function uiTick(){
   if(sim.ev){
     eb.classList.remove('hidden');
     const names={diner:'NEON DINER', rival:'RIVAL RACER', police:'POLICE PURSUIT', convoy:'PACKAGE CONVOY', blackout:'BLACKOUT'};
-    const descs={diner:'Drive past the diner for rewards', rival:'Avoid all collisions for '+Math.ceil(sim.ev.t)+'s', police:'Survive '+Math.ceil(sim.ev.t)+'s without touching anything', convoy:'Grab convoy crates for '+Math.ceil(sim.ev.t)+'s ('+sim.ev.got+' so far)', blackout:'Income x2 for '+Math.ceil(sim.ev.t)+'s'};
+    const descs={diner:'Drive past the diner for rewards', rival:'Avoid all collisions for '+Math.ceil(sim.ev.t)+'s · wager '+fmt(sim.ev.bet||0)+' CR', police:'Survive '+Math.ceil(sim.ev.t)+'s or be impounded', convoy:'Grab convoy crates for '+Math.ceil(sim.ev.t)+'s ('+sim.ev.got+' so far)', blackout:'Income x2 for '+Math.ceil(sim.ev.t)+'s'};
     el('evName').textContent=names[sim.ev.id];
     el('evDesc').textContent=descs[sim.ev.id];
     el('evFill').style.width=(sim.ev.t/sim.ev.dur*100)+'%';
@@ -1960,7 +2001,7 @@ el('lcL').addEventListener('click',()=>setLane(sim.target-1));
 el('lcR').addEventListener('click',()=>setLane(sim.target+1));
 
 /* ---------------- SETTINGS MODAL ---------------- */
-const SETTING_TIPS={"reduced": "Turns off screen shake, speed streaks and most animations. Helps with motion sickness.", "contrast": "Boosts text and panel contrast on the HUD so it is easier to read.", "flashes": "Tones down pulsing glows and full-screen event overlays, for light sensitivity.", "pausemenus": "Freezes driving while a tab other than Drive is open, so traffic cannot hit you while you shop.", "pausebg": "Freezes the game while this browser tab is hidden, and disables away earnings for that time."};
+const SETTING_TIPS={"haptics": "Vibrates the phone on pickups, crashes and Overdrive. Works on most Android phones; iPhone Safari does not support it.", "reduced": "Turns off screen shake, speed streaks and most animations. Helps with motion sickness.", "contrast": "Boosts text and panel contrast on the HUD so it is easier to read.", "flashes": "Tones down pulsing glows and full-screen event overlays, for light sensitivity.", "pausemenus": "Freezes driving while a tab other than Drive is open, so traffic cannot hit you while you shop.", "pausebg": "Freezes the game while this browser tab is hidden, and disables away earnings for that time."};
 function si(k){ return '<span class="tip-i" tabindex="0" role="img" aria-label="'+SETTING_TIPS[k]+'" data-tip="'+SETTING_TIPS[k]+'">?</span>'; }
 const settingsOpen={audio:true,display:false,access:false,data:false,help:false};
 function offlineLine(){ const b=el('netBadge'); return b&&!b.classList.contains('hidden')?(navigator.onLine===false?'Offline now: playing from your device.':'Offline play: ready. Works with no connection, even in airplane mode.'):'Offline play: not installed on this device yet (needs one visit over HTTPS).'; }
@@ -1977,8 +2018,8 @@ function openSettings(){
     +sel('sTrack','MUSIC TRACK',op('auto','Auto (day / night)',s.track)+op('shuffle','Shuffle (timer)',s.track)+Object.keys(TRACKS).map(k=>op(k,TRACKS[k].name,s.track)).join(''))
     +sel('sTrackMin','SHUFFLE EVERY',[1,2,3,5,10,15,30].map(m=>'<option value="'+m+'"'+(s.trackMinutes===m?' selected':'')+'>'+m+' min</option>').join(''),null,s.track!=='shuffle');
   const display=sel('sPalette','COLOR THEME',op('sunset','Sunset',s.palette)+op('ocean','Ocean',s.palette)+op('arcade','Arcade',s.palette)+op('mono','Monochrome',s.palette))
-    +chk('sDayNight',s.dayNight,'Day / night cycle (synthwave day, vaporwave night)')+chk('sStreaks',s.speedStreaks,'Speed streaks (when motion is enabled)')+chk('sScanlines',s.scanlines,'Scanline overlay')+chk('sGlow',s.glowEffects,'Neon glow lighting')+chk('sGuides',s.pickupGuides,'Pickup guide lines');
-  const access=sl('sScale','vScale','TEXT SIZE',s.uiScale,0.85,1.25,.05)+chk('sReduced',s.reduced,'Reduced motion','reduced')+chk('sContrast',s.highContrast,'High contrast HUD','contrast')+chk('sFlashes',s.reduceFlashes,'Reduce pulsing flashes and event overlays','flashes')
+    +chk('sDayNight',s.dayNight,'Day / night cycle (synthwave day, vaporwave night)')+chk('sStreaks',s.speedStreaks,'Speed streaks (when motion is enabled)')+chk('sScanlines',s.scanlines,'Scanline overlay')+chk('sGlow',s.glowEffects,'Neon glow lighting')+chk('sGuides',s.pickupGuides,'Pickup guide lines')+chk('sReflect',s.reflections,'Wet-road neon reflections')+sel('sQuality','GRAPHICS QUALITY',op('auto','Auto (adapts to your device)',s.quality)+op('high','High',s.quality)+op('medium','Medium',s.quality)+op('low','Low',s.quality))+chk('sFps',s.showFps,'Show FPS counter');
+  const access=sl('sScale','vScale','TEXT SIZE',s.uiScale,0.85,1.25,.05)+chk('sReduced',s.reduced,'Reduced motion','reduced')+chk('sContrast',s.highContrast,'High contrast HUD','contrast')+chk('sFlashes',s.reduceFlashes,'Reduce pulsing flashes and event overlays','flashes')+chk('sHaptics',s.haptics,'Vibration feedback (Android phones)','haptics')
     +sel('sControls','TOUCH CONTROL',op('swipe','Swipe / arrows',s.controls)+op('buttons','On-screen arrows',s.controls)+op('tap','Tap screen sides',s.controls))
     +chk('sPauseMenus',s.pauseMenus,'Pause active driving while viewing menus','pausemenus')+chk('sPauseBg',s.pauseBackground,'Pause progress while this tab is hidden (disable offline earnings)','pausebg');
   const data='<div class="sbtns"><button class="btn buy" data-sa="save">SAVE NOW</button><button class="btn" data-sa="stats">STATISTICS</button><button class="btn" data-sa="exp">EXPORT SAVE</button><button class="btn" data-sa="imp">IMPORT SAVE</button><button class="btn warn" data-sa="reset">HARD RESET</button></div>'
@@ -1995,7 +2036,9 @@ function openSettings(){
   wire('sMaster','master','vMaster');wire('sMusic','music','vMusic');wire('sSfx','sfx','vSfx');wire('sEngine','engine','vEngine');
   el('sAudioPreset').addEventListener('change',e=>{const presets={quiet:[0.3,0.45,0.25],balanced:[0.55,0.8,0.65],engine:[0.35,0.7,1]};const v=presets[e.target.value];if(!v)return;[['sMusic','music','vMusic'],['sSfx','sfx','vSfx'],['sEngine','engine','vEngine']].forEach(([id,key,label],i)=>{state.settings[key]=v[i];el(id).value=v[i];el(label).textContent=Math.round(v[i]*100)+'%';});AudioSys.applyVol();});
   el('sScale').addEventListener('input',e=>{state.settings.uiScale=+e.target.value;el('vScale').textContent=Math.round(state.settings.uiScale*100)+'%';applyVisualSettings();});
-  for(const [id,key] of [['sContrast','highContrast'],['sFlashes','reduceFlashes'],['sStreaks','speedStreaks'],['sScanlines','scanlines'],['sGlow','glowEffects'],['sPauseMenus','pauseMenus'],['sPauseBg','pauseBackground'],['sDayNight','dayNight'],['sGuides','pickupGuides']])el(id).addEventListener('change',e=>{state.settings[key]=e.target.checked;applyVisualSettings();updatePauseUI();});
+  for(const [id,key] of [['sContrast','highContrast'],['sFlashes','reduceFlashes'],['sStreaks','speedStreaks'],['sScanlines','scanlines'],['sGlow','glowEffects'],['sPauseMenus','pauseMenus'],['sPauseBg','pauseBackground'],['sDayNight','dayNight'],['sGuides','pickupGuides'],['sReflect','reflections'],['sFps','showFps'],['sHaptics','haptics']])el(id).addEventListener('change',e=>{state.settings[key]=e.target.checked;applyVisualSettings();updatePauseUI();});
+  el('sQuality').addEventListener('change',e=>{ state.settings.quality=e.target.value; Q.low=0; Q.high=0; applyQuality(); updateFpsBox(); });
+  el('sFps').addEventListener('change',()=>updateFpsBox());
   el('sTrack').addEventListener('change',e=>{state.settings.track=e.target.value;el('sTrackMin').disabled=e.target.value!=='shuffle';AudioSys.shuffleAt=0;});
   el('sTrackMin').addEventListener('change',e=>{state.settings.trackMinutes=+e.target.value;AudioSys.shuffleAt=performance.now()+state.settings.trackMinutes*60000;});
   el('sControls').addEventListener('change',e=>{state.settings.controls=e.target.value;applyVisualSettings();});
@@ -2013,7 +2056,7 @@ function openAbout(){
 <h3>OVERDRIVE</h3><p>15s of x5 income and faster driving. NOS Booster and Infinite Overdrive improve it. It does not apply offline.</p>
 <h3>EVENTS</h3><ul><li><b>Neon Diner</b>: drive through the lights for credits and x2 income for 30s.</li><li><b>Rival Racer</b>: survive 30s without a collision for credits, reputation and a speed bonus.</li><li><b>Police Pursuit</b>: survive 25s without touching anything. Failing costs income x0.55 for 20s. Credits are never lost.</li></ul>
 <h3>TABS</h3><ul><li><b>Fleet</b>: buy vehicles that earn on their own, level them, and buy automation.</li><li><b>Routes</b>: multiply fleet income. Each needs lifetime distance and a one-time payment, and is re-bought after Dawnbreak.</li><li><b>Garage</b>: upgrade your own car.</li><li><b>Timeline</b>: switch eras, and perform Dawnbreak.</li></ul>
-<h3>PRICES</h3><p>Credit prices rise with the sustained income of your current run (the PRICE INDEX on the Fleet and Garage tabs). Permanent boosts, like eras, tapes and achievements, are not counted, so they genuinely speed you up. Dawnbreak resets the index. Income multipliers combine with diminishing returns, so the x values on the Timeline and Routes tabs show the real effect, while per-level percentages on upgrade cards are before that adjustment.</p><h3>GOALS</h3><p>The trophy button opens daily contracts and achievements. Each achievement gives +0.5% income permanently, and some unlock new car paint in the Garage.</p><h3>DAWNBREAK</h3><p>At 25,000 km you can reset credits, upgrades, fleet, routes, offline upgrades and your era for Cassette Tapes. Spend tapes on permanent upgrades. Tape Echo keeps a floor of offline earnings through every reset. Tapes, fragments and stats are kept, but eras reset: you climb them again each run.</p>
+<h3>CHAIN &amp; ROAD DANGER</h3><p>Pickups and close calls build a <b>chain</b> (up to +80% pickup payouts); it fades after 7 seconds and a crash breaks it. The road gets busier and adds barricades the farther you go in a run, and riskier roads pay up to +50% more. Dawnbreak resets it.</p><h3>FAILING EVENTS</h3><p>Crashing out of a <b>Rival Race</b> loses your wager. Getting caught in a <b>Police Pursuit</b> impounds the car for 5 seconds and costs you part of your run distance.</p><h3>PRICES</h3><p>Credit prices rise with the sustained income of your current run (the PRICE INDEX on the Fleet and Garage tabs). Permanent boosts, like eras, tapes and achievements, are not counted, so they genuinely speed you up. Dawnbreak resets the index. Income multipliers combine with diminishing returns, so the x values on the Timeline and Routes tabs show the real effect, while per-level percentages on upgrade cards are before that adjustment.</p><h3>GOALS</h3><p>The trophy button opens daily contracts and achievements. Each achievement gives +0.5% income permanently, and some unlock new car paint in the Garage.</p><h3>DAWNBREAK</h3><p>At 25,000 km you can reset credits, upgrades, fleet, routes, offline upgrades and your era for Cassette Tapes. Spend tapes on permanent upgrades. Tape Echo keeps a floor of offline earnings through every reset. Tapes, fragments and stats are kept, but eras reset: you climb them again each run.</p>
 <h3>OFFLINE &amp; SAVING</h3><p>The game saves every 10s and when you leave. While away you earn at your Offline Rate (starts at 5%, upgradeable to 100%) for up to your Offline Cap (starts at 1 hour, upgradeable to 24 hours). Upgrade both in the Fleet tab. Hover or tap any top-bar icon for a tooltip. Settings has Export and Import for backing up your save.</p>`+'</div>'
   +modalBtns([{label:'BACK',fn:openSettings},{label:'CLOSE',cls:'buy',fn:closeModal}]));
 }
@@ -2026,7 +2069,7 @@ function openStats(){
   ['Reputation',fmt(Math.floor(state.reputation))+' (+'+(0.5*Math.floor(state.reputation)).toFixed(1)+'%)'],['Fleet vehicles',units],['Garage levels',gl],['Route','x'+Math.pow(routeMult(),ECON.mulPow).toFixed(2)],
   ['Era',TIMELINES[state.timeline].short],['Eras (this run / ever)',state.unlocked.length+' / '+Object.keys(state.eraSeen).length+' of '+Object.keys(TIMELINES).length],['Offline rate',Math.round(offEff()*100)+'%'],['Offline cap',(offCapS()/3600)+'h'],
   ['Overdrives used',fmt(state.stats.odUses)],['Close calls',fmt(state.stats.closeCalls)],['Collisions',fmt(state.stats.collisions)],['Events won',fmt(state.stats.eventsWon)],
-  ['Dawnbreaks',fmt(state.prestigeCount)],['Achievements',achCount()+'/'+ACH.length],['Daily streak',dailyStreak()+' days'],['Tapes held',state.tapes],['Tapes earned',fmt(state.tapesEarned)],['Playtime',fmtTime(state.stats.playtime)]];
+  ['Dawnbreaks',fmt(state.prestigeCount)],['Achievements',achCount()+'/'+ACH.length],['Best pickup chain','x'+(state.stats.bestChain||0)],['Events lost',fmt(state.stats.eventsLost||0)],['Daily streak',dailyStreak()+' days'],['Tapes held',state.tapes],['Tapes earned',fmt(state.tapesEarned)],['Playtime',fmtTime(state.stats.playtime)]];
   showModal('<h2>STATISTICS</h2><div class="statgrid">'+rows.map(a=>r(a[0],a[1])).join('')+'</div><h3 class="settings-section">RECENT RUNS · DISTANCE</h3><canvas id="historyChart" width="600" height="120" aria-label="Recent run distances"></canvas><p>'+((state.runHistory||[]).length?state.runHistory.map((x,i)=>'Run '+(i+1)+': '+fmt(x.distance)+' km · +'+x.tapes+' tapes').join(' &nbsp; | &nbsp;'):'Complete a Dawnbreak to start your run history.')+'</p>'+modalBtns([{label:'BACK',fn:openSettings},{label:'CLOSE',cls:'buy',fn:closeModal}]));
   const cv=el('historyChart');if(cv){const g=cv.getContext('2d'),a=(state.runHistory||[]).map(x=>x.distance);g.clearRect(0,0,cv.width,cv.height);g.strokeStyle='#42DCE5';g.lineWidth=3;g.beginPath();const mx=Math.max(1,...a);a.forEach((v,i)=>{const x=16+i*(cv.width-32)/Math.max(1,a.length-1),y=cv.height-16-v/mx*(cv.height-32);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();g.fillStyle='#F9D68A';a.forEach((v,i)=>{const x=16+i*(cv.width-32)/Math.max(1,a.length-1),y=cv.height-16-v/mx*(cv.height-32);g.beginPath();g.arc(x,y,4,0,7);g.fill();});}
 }
@@ -2152,9 +2195,13 @@ function loop(ts){
   requestAnimationFrame(loop);
   const dtReal=Math.max(0,(ts-lastFrame)/1000); lastFrame=ts;
   if(document.hidden) return;
+  if(curTab==='drive'&&!gameStopped()&&dtReal>0&&dtReal<.25){ Q.ema+=(1/dtReal-Q.ema)*.08; Q.acc+=dtReal; if(Q.acc>=1){ Q.acc=0; adaptQuality(Q.ema); updateFpsBox(); } }
   try{ if(!gameStopped()) update(Math.min(dtReal,10)); }catch(e){ console.error('update',e); }
+  const gSave=state.settings.glowEffects, sSave=state.settings.speedStreaks;
+  if(Q.tier>=1) state.settings.glowEffects=false; if(Q.tier>=2) state.settings.speedStreaks=false;
   try{ if(curTab==='drive') R.render(Math.min(dtReal,0.05), ts/1000); }
   catch(e){ console.error('render',e); R.cv.width=R.cv.width; R.cx.setTransform(R.DPR,0,0,R.DPR,0,0); }
+  finally{ state.settings.glowEffects=gSave; state.settings.speedStreaks=sSave; }
   try{ frameHUD(); }catch(e){ console.error('hud',e); }
 }
 
@@ -2189,6 +2236,40 @@ function init(){
     applyOffline();
   }
 }
+/* ---------------- QUALITY, FPS, HAPTICS, CHAIN, DANGER ---------------- */
+const Q={tier:0,auto:0,ema:60,low:0,high:0,acc:0};
+function qTier(){ const m=state.settings.quality; return m==='auto'?Q.auto:(m==='low'?2:m==='medium'?1:0); }
+function applyQuality(){ const t=qTier(); if(Q.tier!==t){ Q.tier=t; if(typeof R!=='undefined'&&R.cv) R.resize(); } }
+function adaptQuality(fps){
+  if(state.settings.quality!=='auto') return;
+  if(fps<40){ Q.high=0; if(++Q.low>=3&&Q.auto<2){ Q.auto++; Q.low=0; applyQuality(); toast('Graphics lowered to keep the game smooth','info',2500); } }
+  else if(fps>57){ Q.low=0; if(++Q.high>=25&&Q.auto>0){ Q.auto--; Q.high=0; applyQuality(); } }
+  else { Q.low=0; Q.high=0; }
+}
+function updateFpsBox(){
+  let b=document.getElementById('fpsBox');
+  if(!state.settings.showFps){ if(b) b.style.display='none'; return; }
+  if(!b){ b=document.createElement('div'); b.id='fpsBox'; document.body.appendChild(b); }
+  b.style.display='block'; b.textContent=Math.round(Q.ema)+' FPS · '+['HIGH','MEDIUM','LOW'][Q.tier]+(state.settings.quality==='auto'?' (auto)':'');
+}
+function buzz(p){ if(!state.settings.haptics||typeof navigator==='undefined'||!navigator.vibrate) return; try{ navigator.vibrate(p); }catch(e){} }
+const chainMult=()=>1+0.04*Math.min(20,sim.chain);
+function chainAdd(n){
+  sim.chain+=(n||1); sim.chainT=7; state.stats.bestChain=Math.max(state.stats.bestChain||0,sim.chain);
+  if(sim.chain%10===0){ floatText(R.W/2,R.H*.45,'CHAIN x'+sim.chain+'!','#F9D68A'); AudioSys.sfx('success'); buzz([25,30,25]); }
+}
+function chainBreak(){ if(sim.chain>=5) floatText(R.W/2,R.H*.62,'CHAIN LOST','#FF5D7A'); sim.chain=0; sim.chainT=0; }
+// Danger rises with distance driven in the current run (and resets on Dawnbreak). Riskier roads pay better.
+function danger(){ return clamp(Math.log10(1+state.distance/2000)/3,0,1); }
+const riskMult=()=>1+0.5*danger();
+function dangerLabel(){ const d=danger(); return d<.2?'CALM':d<.45?'BUSY':d<.7?'HEAVY':d<.9?'HOSTILE':'LETHAL'; }
+// Failing a pursuit means jail: the car is impounded and you lose run distance.
+function jail(){
+  const loss=Math.min(state.distance*0.05,cachedSpeed*45); state.distance=Math.max(0,state.distance-loss);
+  sim.jailT=5; sim.invulnT=Math.max(sim.invulnT,5.5);
+  return loss;
+}
+
 /* ---------------- GOALS: achievements, liveries, daily contracts ---------------- */
 const ACH=[]; const A=(id,name,desc,test)=>ACH.push({id,name,desc,test});
 [1e3,1e4,1e5,1e6,1e7,1e8].forEach((d,i)=>A('dist'+i,['First Miles','Long Haul','Century Club','Megamile','Planet Hopper','Beyond the Map'][i],'Drive '+fmt(d)+' km in total.',()=>state.lifetimeDistance>=d));
@@ -2210,6 +2291,7 @@ A('loaded','Fully Loaded','Reach 300 total Garage levels.',()=>GARAGE.reduce((a,
 [[10,'Data Hoarder'],[50,'Cache Overflow']].forEach(([n,nm],i)=>A('fr'+i,nm,'Collect '+n+' Data Fragments.',()=>state.fragments>=n));
 [[3600,'Settled In','1 hour'],[36000,'Lifer','10 hours']].forEach(([n,nm,t],i)=>A('pt'+i,nm,'Play for '+t+'.',()=>state.stats.playtime>=n));
 [[3,'Regular'],[7,'Weekly Habit'],[30,'Monthly Ritual']].forEach(([n,nm],i)=>A('sk'+i,nm,'Reach a '+n+'-day contract streak.',()=>dailyStreak()>=n));
+[[10,'Warm Streak'],[25,'Hot Streak'],[50,'Unstoppable']].forEach(([n,nm],i)=>A('chain'+i,nm,'Reach a x'+n+' pickup chain.',()=>(state.stats.bestChain||0)>=n));
 A('dream','Dreamer','Reach a 12 hour offline cap.',()=>offCapS()>=43200);
 A('sleep','Sleepwalker','Reach a 50% offline rate.',()=>offEff()>=.5);
 const LIVERIES=[
