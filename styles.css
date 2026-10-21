@@ -410,3 +410,12 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:6px
 .livery span{font:700 10px var(--font-n);letter-spacing:1px}.livery small{font-size:11px;opacity:.7}
 .livery.on{border-color:var(--cyan);box-shadow:0 0 10px rgba(66,220,229,.35)}.livery:disabled{opacity:.4;cursor:not-allowed}
 .ibtn.dot{position:relative}.ibtn.dot::after{content:'';position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--sunset);box-shadow:0 0 8px var(--sunset)}
+
+/* ===== chain, heat, fps ===== */
+#chainBox{position:absolute;top:12px;right:14px;text-align:right;pointer-events:none;font-family:var(--font-n)}
+#chainBox b{display:block;font-size:20px;letter-spacing:2px;color:var(--horizon);text-shadow:0 0 12px rgba(249,214,138,.7)}
+#chainBox span{font-size:10px;letter-spacing:2px;color:var(--sunset)}
+#chainBox i{display:block;height:3px;margin-top:4px;background:rgba(255,255,255,.12)}#chainBox i span{display:block;height:100%;background:linear-gradient(90deg,var(--magenta),var(--sunset))}
+#heatBadge{font:700 9px var(--font-n);letter-spacing:2px;color:var(--sunset);margin:2px 0 4px;opacity:.9}
+#fpsBox{position:fixed;right:6px;bottom:calc(var(--nbh) + var(--sab) + 4px);z-index:30;padding:2px 7px;font:700 10px var(--font-n);letter-spacing:1px;color:#9dffb0;background:rgba(0,0,0,.55);border:1px solid rgba(157,255,176,.35);pointer-events:none;display:none}
+@media (max-width:760px){#chainBox{top:64px}#chainBox b{font-size:16px}}
